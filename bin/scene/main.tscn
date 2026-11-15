@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://bhtw7h40nmn6i" path="res://bin/src/c_1.gd" id="2_hetxm"]
 [ext_resource type="AudioStream" uid="uid://63xcrsuxkrup" path="res://bin/asset/audio/bgm.wav" id="3_bgm"]
 [ext_resource type="Script" uid="uid://epwa3f2vxgpa" path="res://bin/src/global_manager.gd" id="4_text"]
+[ext_resource type="Script" uid="uid://dv1odkhiw147i" path="res://bin/src/lyric_ring.gd" id="5_lyric"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_glnxa"]
 
@@ -33,11 +34,6 @@ reflected_light_source = 2
 
 [node name="Node3D" type="Node3D" unique_id=1612798206]
 script = ExtResource("4_text")
-repeat_count = 4
-font_size = 128
-pixel_size = 0.035
-vertical_offset = 6.0
-scroll_speed_deg = 24.0
 
 [node name="stage" type="StaticBody3D" parent="." unique_id=1970860928]
 physics_material_override = SubResource("PhysicsMaterial_glnxa")
@@ -77,4 +73,22 @@ transform = Transform3D(1, 0, 0, 0, 0.99762666, 0.068855666, 0, -0.068855666, 0.
 stream = ExtResource("3_bgm")
 autoplay = true
 
-[node name="TextRing" type="Node3D" parent="." unique_id=738443222]
+[node name="LyricRing" type="Node3D" parent="." unique_id=738443222]
+script = ExtResource("5_lyric")
+lyrics_path = "res://bin/data/song.txt"
+start_time = 89.01
+bold = true
+font_size = 224
+pixel_size = 0.035
+vertical_offset = 6.5
+vertical_lane_count = 4
+line_vertical_spacing = 9.8
+character_spacing = 6.4
+text_depth = 1.2
+text_depth_layers = 8
+entry_angle_deg = 90.0
+offscreen_margin_deg = 8.0
+finish_lead_time = 0.0
+fallback_duration = 4.0
+max_line_duration = 4.2
+max_overlap_time = 0.35
