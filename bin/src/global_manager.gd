@@ -19,14 +19,22 @@ signal lyrics_finished
 	set(value):
 		lyric_ring_path = value
 		_bind_lyric_ring()
+## BGM 播放器路径；播放结束时自动退出进程。
+@export var bgm_path: NodePath = ^"BGM":
+	set(value):
+		bgm_path = value
+		_bind_bgm()
 
 ## 当前绑定的歌词环模板。
 var _lyric_ring: LyricRing
+## 当前绑定的 BGM 播放器。
+var _bgm: AudioStreamPlayer
 
 
 ## 初始化并绑定歌词环模板。
 func _ready() -> void:
 	_bind_lyric_ring()
+	_bind_bgm()
 
 
 ## 从指定时间开始播放歌词。
@@ -118,10 +126,29 @@ func _bind_lyric_ring() -> void:
 		_lyric_ring.playback_finished.connect(_on_playback_finished)
 
 
+## 绑定 BGM，并在播放结束后退出进程。
+func _bind_bgm() -> void:
+	if Engine.is_editor_hint() or not is_node_ready():
+		return
+	if _bgm != null and _bgm.finished.is_connected(_on_bgm_finished):
+		_bgm.finished.disconnect(_on_bgm_finished)
+	_bgm = get_node_or_null(bgm_path) as AudioStreamPlayer
+	if _bgm == null:
+		push_warning("GlobalManager: 找不到 BGM 节点: %s" % bgm_path)
+		return
+	if not _bgm.finished.is_connected(_on_bgm_finished):
+		_bgm.finished.connect(_on_bgm_finished)
+
+
 ## 确保歌词环已绑定。
 func _ensure_lyric_ring() -> void:
 	if _lyric_ring == null:
 		_bind_lyric_ring()
+
+
+## BGM 播放结束，退出进程。
+func _on_bgm_finished() -> void:
+	get_tree().quit()
 
 
 ## 转发歌词开始信号。
