@@ -7,8 +7,8 @@ const ANALYZER_BUS := "BGM_Analyzer"
 const BANDS := [60.0, 120.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0]
 
 @export var bgm_path: NodePath = ^"../../BGM"
-@export_range(0.0, 30.0, 0.5) var zoom_strength_deg: float = 24.0
-@export_range(0.0, 15.0, 0.5) var beat_zoom_strength_deg: float = 4.0
+@export_range(0.0, 60.0, 0.5) var zoom_strength_deg: float = 40.0
+@export_range(0.0, 30.0, 0.5) var beat_zoom_strength_deg: float = 8.0
 @export_range(0.5, 30.0, 0.1) var response_speed: float = 8.0
 @export var centroid_min_hz: float = 400.0
 @export var centroid_max_hz: float = 2500.0
