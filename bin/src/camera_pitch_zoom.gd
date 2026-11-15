@@ -10,6 +10,8 @@ const BANDS := [60.0, 120.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0]
 @export_range(0.0, 30.0, 0.5) var zoom_strength_deg: float = 24.0
 @export_range(0.0, 15.0, 0.5) var beat_zoom_strength_deg: float = 4.0
 @export_range(0.5, 30.0, 0.1) var response_speed: float = 8.0
+@export var centroid_min_hz: float = 400.0
+@export var centroid_max_hz: float = 2500.0
 
 var _bgm: AudioStreamPlayer
 var _analyzer: AudioEffectSpectrumAnalyzerInstance
@@ -43,7 +45,11 @@ func _process(delta: float) -> void:
 	_peak_average = lerpf(_peak_average, peak, clampf(delta * 2.0, 0.0, 1.0))
 	var beat := maxf(_peak_level - _peak_average, 0.0)
 	_beat_accent = lerpf(_beat_accent, beat, clampf(delta * 14.0, 0.0, 1.0))
-	var tone := clampf(inverse_lerp(1400.0, 1900.0, _smoothed_centroid), 0.0, 1.0)
+	var tone := clampf(
+		inverse_lerp(centroid_min_hz, maxf(centroid_max_hz, centroid_min_hz + 1.0), _smoothed_centroid),
+		0.0,
+		1.0
+	)
 	var target_fov := clampf(
 		_base_fov - (tone - 0.5) * zoom_strength_deg - _beat_accent * beat_zoom_strength_deg,
 		30.0,
