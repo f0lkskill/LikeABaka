@@ -3,7 +3,7 @@
 [ext_resource type="Texture2D" uid="uid://bq2m88q7aa4h5" path="res://bin/asset/image/cha_1/idle.png" id="1_fpb3j"]
 [ext_resource type="Script" uid="uid://bhtw7h40nmn6i" path="res://bin/src/c_1.gd" id="2_hetxm"]
 [ext_resource type="AudioStream" uid="uid://63xcrsuxkrup" path="res://bin/asset/audio/bgm.wav" id="3_bgm"]
-[ext_resource type="Script" uid="uid://epwa3f2vxgpa" path="res://bin/src/cylinder_text_manager.gd" id="4_text"]
+[ext_resource type="Script" uid="uid://epwa3f2vxgpa" path="res://bin/src/global_manager.gd" id="4_text"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_glnxa"]
 

@@ -1,4 +1,10 @@
 @tool
+## 场景全局管理器。
+##
+## 挂载在场景根节点，统一提供场景级接口与效果控制。
+## 目前负责圆柱表面滚轴文字环的生成、布局和滚动，
+## 后续可在此扩展其他全局功能。
+class_name GlobalManager
 extends Node3D
 
 @export var stage_mesh_path: NodePath = ^"stage/CollisionShape3D/MeshInstance3D":
