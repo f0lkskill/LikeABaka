@@ -1,0 +1,62 @@
+[gd_scene format=3 uid="uid://bixvewifxyira"]
+
+[ext_resource type="Texture2D" uid="uid://bq2m88q7aa4h5" path="res://bin/asset/image/cha_1/idle.png" id="1_fpb3j"]
+[ext_resource type="Script" uid="uid://bhtw7h40nmn6i" path="res://bin/src/c_1.gd" id="2_hetxm"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_glnxa"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_glnxa"]
+height = 0.83251953
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_white"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_glnxa"]
+material = SubResource("StandardMaterial3D_white")
+top_radius = 31.30664
+bottom_radius = 31.30664
+height = 9.968079
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_env"]
+sky_horizon_color = Color(0.646, 0.646, 0.646, 1)
+ground_horizon_color = Color(0.646, 0.646, 0.646, 1)
+
+[sub_resource type="Sky" id="Sky_env"]
+sky_material = SubResource("ProceduralSkyMaterial_env")
+
+[sub_resource type="Environment" id="Environment_env"]
+background_mode = 2
+sky = SubResource("Sky_env")
+ambient_light_source = 3
+reflected_light_source = 2
+
+[node name="Node3D" type="Node3D" unique_id=1612798206]
+
+[node name="stage" type="StaticBody3D" parent="." unique_id=1970860928]
+physics_material_override = SubResource("PhysicsMaterial_glnxa")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="stage" unique_id=382366739]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0010117292, 0.0023311377)
+shape = SubResource("CylinderShape3D_glnxa")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="stage/CollisionShape3D" unique_id=184215688]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -4.5677795, 0)
+mesh = SubResource("CylinderMesh_glnxa")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=81278775]
+environment = SubResource("Environment_env")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="." unique_id=1384298928]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6.1396065, 0)
+distance_fade_enabled = true
+
+[node name="charactor" type="Node3D" parent="." unique_id=1316564881]
+
+[node name="C1" type="Sprite3D" parent="charactor" unique_id=1486681781]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 20, 0)
+texture = ExtResource("1_fpb3j")
+script = ExtResource("2_hetxm")
+
+[node name="Node3D" type="Node3D" parent="." unique_id=747132078]
+
+[node name="Camera3D" type="Camera3D" parent="Node3D" unique_id=345927553]
+transform = Transform3D(1, 0, 0, 0, 0.99762666, 0.068855666, 0, -0.068855666, 0.9976266, 0, 24.169628, 32.882042)
