@@ -2,6 +2,8 @@
 
 [ext_resource type="Texture2D" uid="uid://bq2m88q7aa4h5" path="res://bin/asset/image/cha_1/idle.png" id="1_fpb3j"]
 [ext_resource type="Script" uid="uid://bhtw7h40nmn6i" path="res://bin/src/c_1.gd" id="2_hetxm"]
+[ext_resource type="AudioStream" uid="uid://63xcrsuxkrup" path="res://bin/asset/audio/bgm.wav" id="3_bgm"]
+[ext_resource type="Script" uid="uid://epwa3f2vxgpa" path="res://bin/src/cylinder_text_manager.gd" id="4_text"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_glnxa"]
 
@@ -30,6 +32,12 @@ ambient_light_source = 3
 reflected_light_source = 2
 
 [node name="Node3D" type="Node3D" unique_id=1612798206]
+script = ExtResource("4_text")
+repeat_count = 4
+font_size = 128
+pixel_size = 0.035
+vertical_offset = 6.0
+scroll_speed_deg = 24.0
 
 [node name="stage" type="StaticBody3D" parent="." unique_id=1970860928]
 physics_material_override = SubResource("PhysicsMaterial_glnxa")
@@ -52,11 +60,17 @@ distance_fade_enabled = true
 [node name="charactor" type="Node3D" parent="." unique_id=1316564881]
 
 [node name="C1" type="Sprite3D" parent="charactor" unique_id=1486681781]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 20, 0)
+transform = Transform3D(1.2, 0, 0, 0, 1.2, 0, 0, 0, 1.2, 0, 24.487652, 0)
 texture = ExtResource("1_fpb3j")
 script = ExtResource("2_hetxm")
 
 [node name="Node3D" type="Node3D" parent="." unique_id=747132078]
 
 [node name="Camera3D" type="Camera3D" parent="Node3D" unique_id=345927553]
-transform = Transform3D(1, 0, 0, 0, 0.99762666, 0.068855666, 0, -0.068855666, 0.9976266, 0, 24.169628, 32.882042)
+transform = Transform3D(1, 0, 0, 0, 0.99762666, 0.068855666, 0, -0.068855666, 0.9976266, 0, 27.66735, 34.8293)
+
+[node name="BGM" type="AudioStreamPlayer" parent="." unique_id=933197175]
+stream = ExtResource("3_bgm")
+autoplay = true
+
+[node name="TextRing" type="Node3D" parent="." unique_id=738443222]
