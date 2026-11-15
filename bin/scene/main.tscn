@@ -53,6 +53,10 @@ mesh = SubResource("CylinderMesh_glnxa")
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=81278775]
 environment = SubResource("Environment_env")
 
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.642788, 0.766044, 0, -0.766044, 0.642788, 0, 20, 0)
+light_energy = 1.0
+
 [node name="OmniLight3D" type="OmniLight3D" parent="." unique_id=1384298928]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6.1396065, 0)
 distance_fade_enabled = true
