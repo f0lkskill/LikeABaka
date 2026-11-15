@@ -5,6 +5,7 @@
 [ext_resource type="AudioStream" uid="uid://63xcrsuxkrup" path="res://bin/asset/audio/bgm.wav" id="3_bgm"]
 [ext_resource type="Script" uid="uid://epwa3f2vxgpa" path="res://bin/src/global_manager.gd" id="4_text"]
 [ext_resource type="Script" uid="uid://dv1odkhiw147i" path="res://bin/src/lyric_ring.gd" id="5_lyric"]
+[ext_resource type="Script" uid="uid://bygpauh3xgdbo" path="res://bin/src/camera_pitch_zoom.gd" id="6_camera"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_glnxa"]
 
@@ -68,6 +69,7 @@ script = ExtResource("2_hetxm")
 
 [node name="Camera3D" type="Camera3D" parent="Node3D" unique_id=345927553]
 transform = Transform3D(1, 0, 0, 0, 0.99762666, 0.068855666, 0, -0.068855666, 0.9976266, 0, 27.66735, 34.8293)
+script = ExtResource("6_camera")
 
 [node name="BGM" type="AudioStreamPlayer" parent="." unique_id=933197175]
 stream = ExtResource("3_bgm")
