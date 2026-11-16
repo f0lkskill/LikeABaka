@@ -412,6 +412,13 @@ func _enter_silhouette() -> void:
 		)
 	if _backdrop != null and _backdrop.has_method("set_checker_mode"):
 		_backdrop.call("set_checker_mode", true, silhouette_transition_duration)
+	# 飞入素材也进入剪影色，使用自己的材质做渐变。
+	if _image_event != null and _image_event.has_method("set_silhouette_mode"):
+		_image_event.call(
+			"set_silhouette_mode",
+			true,
+			silhouette_transition_duration
+		)
 
 
 ## 退出剪影：所有颜色渐变回角色主题色，结束后撤销材质覆盖。
@@ -430,6 +437,13 @@ func _exit_silhouette() -> void:
 		_backdrop.call("fade_theme", theme_color, silhouette_transition_duration)
 	if _backdrop != null and _backdrop.has_method("set_checker_mode"):
 		_backdrop.call("set_checker_mode", false, silhouette_transition_duration)
+	# 飞入素材随剪影一起渐变回原色。
+	if _image_event != null and _image_event.has_method("set_silhouette_mode"):
+		_image_event.call(
+			"set_silhouette_mode",
+			false,
+			silhouette_transition_duration
+		)
 	if silhouette_transition_duration <= 0.0:
 		_finish_exit_silhouette()
 	elif _silhouette_tween != null and _silhouette_tween.is_valid():
@@ -438,7 +452,7 @@ func _exit_silhouette() -> void:
 
 ## 应用材质覆盖并记录原始材质。
 func _ensure_silhouette_visuals() -> void:
-	# 飞入素材使用独立材质，不参与这里的黑白剪影覆盖。
+	# 飞入素材由自己的材质单独渐变到剪影色，这里只处理人物和舞台。
 	if _silhouette_visuals_applied:
 		return
 	if _silhouette_character_material == null:

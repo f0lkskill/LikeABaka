@@ -26,7 +26,7 @@ extends Node3D
 ## 从屏幕上方/下方开始移动的偏移量。
 @export var spawn_offset: float = 30.0
 ## 飞出时额外增加的离场距离。
-@export var exit_extra_offset: float = 22.0
+@export var exit_extra_offset: float = 40.0
 ## 缓入到摄像机平视位置的时间。
 @export_range(0.05, 5.0, 0.05) var fly_in_duration: float = 1.1
 ## 在平视位置停留的时间。
@@ -45,6 +45,10 @@ extends Node3D
 ## 同时存在的最大面板数量；超出时移除最早的一张。
 @export_range(1, 8, 1) var max_active_cards: int = 4
 
+@export_group("Silhouette")
+## 剪影事件中飞入素材变成的颜色。
+@export var silhouette_color: Color = Color.BLACK
+
 @export_group("Outline")
 ## 描边颜色。
 @export var outline_color: Color = Color(0.025, 0.02, 0.03, 1.0)
@@ -61,6 +65,8 @@ var _textures: Array[Texture2D] = []
 var _active_cards: Array[MeshInstance3D] = []
 ## 素材抽取袋，保证每张素材单独使用一次后再重新洗牌。
 var _texture_bag: Array[int] = []
+## 当前剪影目标，0 为原色，1 为纯剪影色。
+var _silhouette_target: float = 0.0
 
 
 ## 载入素材目录中的所有 png。
@@ -113,6 +119,37 @@ func trigger_event() -> void:
 	add_child(card)
 	_active_cards.append(card)
 	_animate_card(card, start_y, target_y, direction)
+
+
+## 切换飞入素材的剪影状态。
+## [param active] 是否变成剪影颜色。
+## [param duration] 颜色渐变时长；小于等于 0 时立即切换。
+func set_silhouette_mode(active: bool, duration: float) -> void:
+	_silhouette_target = 1.0 if active else 0.0
+	for card in _active_cards:
+		if not is_instance_valid(card):
+			continue
+		var material := card.material_override as ShaderMaterial
+		if material == null:
+			continue
+		if duration <= 0.0:
+			material.set_shader_parameter("silhouette_mix", _silhouette_target)
+		else:
+			var current := float(material.get_shader_parameter("silhouette_mix"))
+			create_tween().tween_method(
+				_set_material_silhouette_mix.bind(material),
+				current,
+				_silhouette_target,
+				duration
+			).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+## 设置单个卡片材质的剪影混合程度。
+## [param value] 0 为原色，1 为纯剪影色。
+## [param material] 目标卡片材质。
+func _set_material_silhouette_mix(value: float, material: ShaderMaterial) -> void:
+	if is_instance_valid(material):
+		material.set_shader_parameter("silhouette_mix", value)
 
 
 ## 载入目录中的全部 png 背景素材。
@@ -204,6 +241,8 @@ render_mode unshaded, cull_disabled, blend_mix;
 
 uniform sampler2D card_texture : source_color, filter_linear_mipmap;
 uniform vec4 outline_color : source_color = vec4(0.025, 0.02, 0.03, 1.0);
+uniform vec4 silhouette_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
+uniform float silhouette_mix = 0.0;
 uniform float outline_width = 0.014;
 uniform float edge_distortion = 0.022;
 uniform float noise_scale = 20.0;
@@ -233,7 +272,9 @@ void fragment() {
 		discard;
 	}
 	float outline = 1.0 - smoothstep(outline_width * 0.55, outline_width, torn_edge);
-	ALBEDO = mix(tex.rgb, outline_color.rgb, outline);
+	vec3 card_color = mix(tex.rgb, silhouette_color.rgb, silhouette_mix);
+	vec3 line_color = mix(outline_color.rgb, silhouette_color.rgb, silhouette_mix);
+	ALBEDO = mix(card_color, line_color, outline);
 	ALPHA = tex.a;
 }
 """
@@ -241,6 +282,8 @@ void fragment() {
 	material.shader = shader
 	material.set_shader_parameter("card_texture", texture)
 	material.set_shader_parameter("outline_color", outline_color)
+	material.set_shader_parameter("silhouette_color", silhouette_color)
+	material.set_shader_parameter("silhouette_mix", _silhouette_target)
 	material.set_shader_parameter("outline_width", outline_width)
 	material.set_shader_parameter("edge_distortion", edge_distortion)
 	material.set_shader_parameter("noise_scale", noise_scale)
