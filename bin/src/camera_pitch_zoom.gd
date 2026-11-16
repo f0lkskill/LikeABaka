@@ -5,13 +5,15 @@ extends Camera3D
 
 const ANALYZER_BUS := "BGM_Analyzer"
 const BANDS := [60.0, 120.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0]
+const SEGMENT_ACCENTS := [1.0, -0.8, 0.4, -1.0]
 
 @export var bgm_path: NodePath = ^"../../BGM"
-@export_range(0.0, 90.0, 0.5) var zoom_strength_deg: float = 50.0
+@export_range(0.0, 90.0, 0.5) var zoom_strength_deg: float = 60.0
 @export_range(0.2, 8.0, 0.1) var segment_duration: float = 1.0
 @export_range(0.0, 2.0, 0.05) var segment_transition_duration: float = 0.35
-@export_range(0.0, 1.0, 0.05) var energy_weight: float = 0.2
-@export var centroid_min_hz: float = 1400.0
+@export_range(0.0, 1.0, 0.05) var energy_weight: float = 0.15
+@export_range(0.0, 0.3, 0.01) var segment_accent: float = 0.12
+@export var centroid_min_hz: float = 500.0
 @export var centroid_max_hz: float = 2000.0
 
 var _bgm: AudioStreamPlayer
@@ -70,7 +72,12 @@ func _apply_segment(average_centroid: float, average_peak: float) -> void:
 		1.0
 	)
 	var energy := clampf(average_peak, 0.0, 1.0)
-	var value := clampf(tone * (1.0 - energy_weight) + energy * energy_weight, 0.0, 1.0)
+	var accent: float = float(SEGMENT_ACCENTS[_segment_count % SEGMENT_ACCENTS.size()]) * segment_accent
+	var value := clampf(
+		tone * (1.0 - energy_weight) + energy * energy_weight + accent,
+		0.0,
+		1.0
+	)
 	_fov_from = fov
 	_fov_to = clampf(
 		_base_fov - (value - 0.5) * zoom_strength_deg,
