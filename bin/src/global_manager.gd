@@ -580,17 +580,27 @@ func _set_silhouette_mix(value: float) -> void:
 		)
 
 
-## 同步基础立绘和残留上层使用的贴图。
+## 同步基础立绘和残留上层使用的贴图，以及角色切换时的透明度。
 func _sync_silhouette_textures() -> void:
 	if _character is Sprite3D and _silhouette_character_material != null:
+		var character_sprite := _character as Sprite3D
 		_silhouette_character_material.set_shader_parameter(
 			"silhouette_texture",
-			(_character as Sprite3D).texture
+			character_sprite.texture
+		)
+		_silhouette_character_material.set_shader_parameter(
+			"character_fade",
+			character_sprite.modulate.a
 		)
 	if _character_overlay is Sprite3D and _silhouette_overlay_material != null:
+		var overlay_sprite := _character_overlay as Sprite3D
 		_silhouette_overlay_material.set_shader_parameter(
 			"silhouette_texture",
-			(_character_overlay as Sprite3D).texture
+			overlay_sprite.texture
+		)
+		_silhouette_overlay_material.set_shader_parameter(
+			"character_fade",
+			overlay_sprite.modulate.a
 		)
 
 
@@ -640,6 +650,7 @@ render_mode unshaded, cull_disabled, blend_mix;
 uniform sampler2D silhouette_texture : source_color, filter_linear;
 uniform vec4 silhouette_color : source_color = vec4(1.0);
 uniform float silhouette_mix : hint_range(0.0, 1.0) = 1.0;
+uniform float character_fade : hint_range(0.0, 1.0) = 1.0;
 
 // 自定义材质会绕过 Sprite3D 的 billboard，因此在剪影里手动朝向摄像机。
 void vertex() {
@@ -668,7 +679,7 @@ void vertex() {
 void fragment() {
 	vec4 tex = texture(silhouette_texture, UV);
 	ALBEDO = mix(tex.rgb, silhouette_color.rgb, silhouette_mix);
-	ALPHA = tex.a * mix(1.0, silhouette_color.a, silhouette_mix);
+	ALPHA = tex.a * mix(1.0, silhouette_color.a, silhouette_mix) * character_fade;
 }
 """
 	_silhouette_character_material = ShaderMaterial.new()
