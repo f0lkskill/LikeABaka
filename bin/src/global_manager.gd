@@ -162,12 +162,12 @@ func _ready() -> void:
 	_bind_bgm()
 	_bind_performance()
 	_bind_event()
-	# 绑定 Event 节点后自动播放 main 动画组。
-	if _event != null:
+	# 只在尚未播放时启动，避免每次 ready 都把播放位置重置到开头。
+	if _event != null and not _event.is_playing():
 		_event.play("main")
-
-	_bgm = get_node_or_null(bgm_path) as AudioStreamPlayer
-	_bgm.play()
+	# BGM 没有开启场景 autoplay，因此这里只负责首次启动，不重复强制播放。
+	if _bgm != null and not _bgm.playing:
+		_bgm.play()
 
 
 ## 从指定时间开始播放歌词。
