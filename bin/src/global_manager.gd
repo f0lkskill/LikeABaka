@@ -647,7 +647,7 @@ func _build_silhouette_materials() -> void:
 	shader.code = """
 shader_type spatial;
 render_mode unshaded, cull_disabled, blend_mix;
-uniform sampler2D silhouette_texture : source_color, filter_linear;
+uniform sampler2D silhouette_texture : source_color, filter_linear_mipmap;
 uniform vec4 silhouette_color : source_color = vec4(1.0);
 uniform float silhouette_mix : hint_range(0.0, 1.0) = 1.0;
 uniform float character_fade : hint_range(0.0, 1.0) = 1.0;
