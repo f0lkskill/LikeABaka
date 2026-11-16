@@ -41,6 +41,16 @@ const SEGMENT_ACCENTS := [1.0, -1.0, 0.5, -0.6, 0.8, -0.8]
 ## 频谱重心映射上限，单位为赫兹。
 @export var centroid_max_hz: float = 2000.0
 
+@export_group("Camera Sway")
+## 是否启用摄像机左右呼吸摇晃。
+@export var sway_enabled: bool = true
+## 最大左右偏航角度，建议保持很小。
+@export_range(0.0, 5.0, 0.01) var sway_degrees: float = 0.6
+## 主呼吸周期，单位为秒。
+@export_range(0.5, 30.0, 0.1) var sway_period: float = 8.0
+## 次级波形强度，让运动不完全机械。
+@export_range(0.0, 1.0, 0.01) var sway_secondary_strength: float = 0.35
+
 ## 当前 BGM 播放器。
 var _bgm: AudioStreamPlayer
 ## 当前频谱分析器实例。
@@ -71,6 +81,10 @@ var _fov_from: float = 75.0
 var _fov_to: float = 75.0
 ## 当前段过渡已经过的时间。
 var _transition_elapsed: float = 0.0
+## 摄像机初始旋转，摇晃在此基础上叠加。
+var _base_rotation: Vector3
+## 呼吸摇晃累计时间。
+var _sway_time: float = 0.0
 
 
 ## 初始化基准 FOV、BGM 引用和分析器总线。
@@ -78,15 +92,38 @@ func _ready() -> void:
 	_base_fov = fov
 	_fov_from = fov
 	_fov_to = fov
+	_base_rotation = rotation
 	_bgm = get_node_or_null(bgm_path) as AudioStreamPlayer
 	_setup_analyzer_bus()
 	_setup_lookahead()
 
 
+## 叠加轻微、非机械的摄像机左右呼吸摇摆。
+## [param delta] 本帧时间，单位为秒。
+func _update_sway(delta: float) -> void:
+	if not sway_enabled:
+		rotation = _base_rotation
+		return
+	_sway_time += delta
+	var period := maxf(sway_period, 0.001)
+	var phase := _sway_time * TAU / period
+	# 主波 + 次级波 + 很慢的漂移，避免完全周期性的机械感。
+	var wave := sin(phase)
+	wave += sin(phase * 1.618 + 1.1) * sway_secondary_strength
+	wave += sin(phase * 0.37 + 0.5) * 0.15
+	var yaw := deg_to_rad(sway_degrees) * wave / (1.0 + sway_secondary_strength + 0.15)
+	rotation = Vector3(
+		_base_rotation.x,
+		_base_rotation.y + yaw,
+		_base_rotation.z
+	)
+
+
 ## 累积当前分段的音频数据，并在到达段边界时更新目标 FOV。
-## 段内只推进过渡动画，不改变目标值。
-## [param delta] 距上一帧的时间，单位为秒。
+## 这里只推进动画状态，不直接改变 FOV 数值。
+## [param delta] 本帧时间，单位为秒。
 func _process(delta: float) -> void:
+	_update_sway(delta)
 	_update_lookahead()
 	var use_lookahead := (
 		_lookahead_analyzer != null
