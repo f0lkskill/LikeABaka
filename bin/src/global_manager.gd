@@ -48,6 +48,8 @@ signal lyrics_finished
 ## 歌词只负责显示；旋转由 Event 节点或 AnimationPlayer 手动调用。
 ## 舞台旋转 180 度所需时间。
 @export_range(0.1, 5.0, 0.05) var rotate_duration: float = 1.2
+## 连续旋转时是否交替方向，默认开启。
+@export var alternate_rotation_direction: bool = true
 ## 舞台律动条节点路径；角色切换时会同步主题色。
 @export var rhythm_bars_path: NodePath = ^"stage/CollisionShape3D/StageRhythmBars":
 	set(value):
@@ -128,6 +130,8 @@ var _camera_follow_angle: float = 0.0
 var _camera_target_angle: float = 0.0
 ## 摄像机是否仍在追平舞台。
 var _camera_following: bool = false
+## 下一次旋转的方向：1 为正向，-1 为反向。
+var _next_rotation_direction: float = 1.0
 ## 飞入素材事件节点；剪影事件会同步它的颜色状态。
 var _image_event: Node
 ## 飞入素材事件的歌词计数。
@@ -295,9 +299,13 @@ func _start_stage_rotation(
 	_camera_follow_angle = 0.0
 	_camera_target_angle = 0.0
 	_camera_following = true
+	var rotation_angle := PI
+	if alternate_rotation_direction:
+		rotation_angle *= _next_rotation_direction
+		_next_rotation_direction *= -1.0
 	var tween := create_tween()
 	tween.tween_method(
-		_set_stage_rotation.bind(PI),
+		_set_stage_rotation.bind(rotation_angle),
 		0.0,
 		1.0,
 		rotate_duration
