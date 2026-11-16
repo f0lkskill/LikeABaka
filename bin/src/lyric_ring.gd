@@ -50,8 +50,8 @@ class ActiveLine:
 				_show_editor_preview()
 			elif auto_play:
 				play()
-## 歌词时间轴起点，单位为秒；默认从 [01:29.01] 开始。
-@export var start_time: float = 89.01:
+## 歌词时间轴起点，单位为秒；默认从 0 秒开始。
+@export var start_time: float = 0.0:
 	set(value):
 		start_time = value
 		if is_node_ready() and Engine.is_editor_hint():
