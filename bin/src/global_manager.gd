@@ -641,6 +641,30 @@ uniform sampler2D silhouette_texture : source_color, filter_linear;
 uniform vec4 silhouette_color : source_color = vec4(1.0);
 uniform float silhouette_mix : hint_range(0.0, 1.0) = 1.0;
 
+// 自定义材质会绕过 Sprite3D 的 billboard，因此在剪影里手动朝向摄像机。
+void vertex() {
+	vec3 origin = MODEL_MATRIX[3].xyz;
+	vec3 camera_world = INV_VIEW_MATRIX[3].xyz;
+	vec3 forward = normalize(vec3(
+		camera_world.x - origin.x,
+		0.0,
+		camera_world.z - origin.z
+	));
+	vec3 right = normalize(cross(vec3(0.0, 1.0, 0.0), forward));
+	vec3 up = normalize(cross(forward, right));
+	vec3 scale = vec3(
+		length(MODEL_MATRIX[0].xyz),
+		length(MODEL_MATRIX[1].xyz),
+		length(MODEL_MATRIX[2].xyz)
+	);
+	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(
+		vec4(right * scale.x, 0.0),
+		vec4(up * scale.y, 0.0),
+		vec4(forward * scale.z, 0.0),
+		vec4(origin, 1.0)
+	);
+}
+
 void fragment() {
 	vec4 tex = texture(silhouette_texture, UV);
 	ALBEDO = mix(tex.rgb, silhouette_color.rgb, silhouette_mix);
