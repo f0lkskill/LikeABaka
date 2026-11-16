@@ -1,30 +1,37 @@
 extends Camera3D
 
-## 实时采样 BGM 的频谱重心与峰值能量，持续微调摄像机 FOV。
-## 不循环 BGM；BGM 结束后镜头会自然停在当前状态。
+## 按 BGM 分段采样音调与能量，在段边界直接切换 FOV。
+## 段内保持不变，形成更有张力的阶梯式镜头变化；不循环 BGM。
 
 const ANALYZER_BUS := "BGM_Analyzer"
 const BANDS := [60.0, 120.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0]
 
 @export var bgm_path: NodePath = ^"../../BGM"
-@export_range(0.0, 60.0, 0.5) var zoom_strength_deg: float = 40.0
-@export_range(0.0, 30.0, 0.5) var beat_zoom_strength_deg: float = 8.0
-@export_range(0.5, 30.0, 0.1) var response_speed: float = 8.0
-@export var centroid_min_hz: float = 400.0
-@export var centroid_max_hz: float = 2500.0
+@export_range(0.0, 90.0, 0.5) var zoom_strength_deg: float = 50.0
+@export_range(0.2, 8.0, 0.1) var segment_duration: float = 1.0
+@export_range(0.0, 2.0, 0.05) var segment_transition_duration: float = 0.35
+@export_range(0.0, 1.0, 0.05) var energy_weight: float = 0.2
+@export var centroid_min_hz: float = 1400.0
+@export var centroid_max_hz: float = 2000.0
 
 var _bgm: AudioStreamPlayer
 var _analyzer: AudioEffectSpectrumAnalyzerInstance
 var _bus_index: int = -1
 var _base_fov: float
-var _smoothed_centroid: float = 1500.0
-var _peak_level: float = 0.0
-var _peak_average: float = 0.0
-var _beat_accent: float = 0.0
+var _segment_elapsed: float = 0.0
+var _segment_count: int = 0
+var _centroid_sum: float = 0.0
+var _peak_max: float = 0.0
+var _sample_count: int = 0
+var _fov_from: float = 75.0
+var _fov_to: float = 75.0
+var _transition_elapsed: float = 0.0
 
 
 func _ready() -> void:
 	_base_fov = fov
+	_fov_from = fov
+	_fov_to = fov
 	_bgm = get_node_or_null(bgm_path) as AudioStreamPlayer
 	_setup_analyzer_bus()
 
@@ -33,29 +40,56 @@ func _process(delta: float) -> void:
 	if _analyzer == null:
 		return
 	var centroid := _estimate_centroid()
-	if centroid > 0.0:
-		_smoothed_centroid = lerpf(
-			_smoothed_centroid,
-			centroid,
-			clampf(delta * response_speed, 0.0, 1.0)
-		)
-	var peak_db := AudioServer.get_bus_peak_volume_left_db(_bus_index, 0)
-	var peak := clampf(db_to_linear(peak_db), 0.0, 1.0)
-	_peak_level = lerpf(_peak_level, peak, clampf(delta * 20.0, 0.0, 1.0))
-	_peak_average = lerpf(_peak_average, peak, clampf(delta * 2.0, 0.0, 1.0))
-	var beat := maxf(_peak_level - _peak_average, 0.0)
-	_beat_accent = lerpf(_beat_accent, beat, clampf(delta * 14.0, 0.0, 1.0))
-	var tone := clampf(
-		inverse_lerp(centroid_min_hz, maxf(centroid_max_hz, centroid_min_hz + 1.0), _smoothed_centroid),
+	var peak := clampf(
+		db_to_linear(AudioServer.get_bus_peak_volume_left_db(_bus_index, 0)),
 		0.0,
 		1.0
 	)
-	var target_fov := clampf(
-		_base_fov - (tone - 0.5) * zoom_strength_deg - _beat_accent * beat_zoom_strength_deg,
+	# 第一段稍短，避免开场长时间没有变化。
+	var target_duration := segment_duration if _segment_count > 0 else minf(segment_duration, 0.6)
+	_segment_elapsed += delta
+	if centroid > 0.0:
+		_centroid_sum += centroid
+		_peak_max = maxf(_peak_max, peak)
+		_sample_count += 1
+	if _segment_elapsed >= target_duration:
+		if _sample_count > 0:
+			_apply_segment(_centroid_sum / _sample_count, _peak_max)
+		_segment_elapsed = 0.0
+		_centroid_sum = 0.0
+		_peak_max = 0.0
+		_sample_count = 0
+		_segment_count += 1
+	_update_fov_transition(delta)
+
+
+func _apply_segment(average_centroid: float, average_peak: float) -> void:
+	var tone := clampf(
+		inverse_lerp(centroid_min_hz, maxf(centroid_max_hz, centroid_min_hz + 1.0), average_centroid),
+		0.0,
+		1.0
+	)
+	var energy := clampf(average_peak, 0.0, 1.0)
+	var value := clampf(tone * (1.0 - energy_weight) + energy * energy_weight, 0.0, 1.0)
+	_fov_from = fov
+	_fov_to = clampf(
+		_base_fov - (value - 0.5) * zoom_strength_deg,
 		30.0,
 		100.0
 	)
-	fov = lerpf(fov, target_fov, clampf(delta * response_speed, 0.0, 1.0))
+	_transition_elapsed = 0.0
+
+
+## 段边界之间用短暂缓动过渡，避免硬切；过渡结束后保持到下一段。
+func _update_fov_transition(delta: float) -> void:
+	if segment_transition_duration <= 0.0:
+		fov = _fov_to
+		return
+	_transition_elapsed = minf(_transition_elapsed + delta, segment_transition_duration)
+	var t := _transition_elapsed / segment_transition_duration
+	var eased := t * t * (3.0 - 2.0 * t)
+	fov = lerpf(_fov_from, _fov_to, eased)
+
 
 
 func _setup_analyzer_bus() -> void:
