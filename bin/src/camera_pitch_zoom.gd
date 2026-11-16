@@ -45,15 +45,15 @@ const SEGMENT_ACCENTS := [1.0, -1.0, 0.5, -0.6, 0.8, -0.8]
 ## 是否启用摄像机左右呼吸摇晃。
 @export var sway_enabled: bool = true
 ## 左右平移距离，在摄像机竖直平面内移动。
-@export_range(0.0, 5.0, 0.01) var sway_distance: float = 0.8
+@export_range(0.0, 5.0, 0.01) var sway_distance: float = 2.2
 ## 竖直方向的小幅起伏，与左右运动组成很小的莫比乌斯式循环。
-@export_range(0.0, 2.0, 0.01) var sway_vertical_distance: float = 0.25
+@export_range(0.0, 2.0, 0.01) var sway_vertical_distance: float = 0.5
 ## 可选的极小滚转，增加环路的扭转感。
-@export_range(0.0, 3.0, 0.01) var sway_roll_degrees: float = 0.12
+@export_range(0.0, 3.0, 0.01) var sway_roll_degrees: float = 0.25
 ## 可选的小幅偏航角度；0 表示只做平移摇头。
 @export_range(0.0, 5.0, 0.01) var sway_degrees: float = 0.0
 ## 主呼吸周期，单位为秒。
-@export_range(0.5, 30.0, 0.1) var sway_period: float = 8.0
+@export_range(0.5, 30.0, 0.1) var sway_period: float = 6.0
 ## 次级波形强度，让运动不完全机械。
 @export_range(0.0, 1.0, 0.01) var sway_secondary_strength: float = 0.35
 
