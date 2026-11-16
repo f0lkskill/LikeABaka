@@ -8,6 +8,7 @@
 [ext_resource type="Script" uid="uid://bygpauh3xgdbo" path="res://bin/src/camera_pitch_zoom.gd" id="6_camera"]
 [ext_resource type="Script" uid="uid://on1mbif67j7l" path="res://bin/src/stage_rhythm_bars.gd" id="7_bars"]
 [ext_resource type="Script" uid="uid://ce8mnfc7d14a0" path="res://bin/src/stage_backdrop.gd" id="8_backdrop"]
+[ext_resource type="Script" uid="uid://crdfdd0oy3jd" path="res://bin/src/image_fly_event.gd" id="9_fly"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_glnxa"]
 
@@ -44,16 +45,27 @@ sky = SubResource("Sky_env")
 ambient_light_source = 3
 reflected_light_source = 2
 
+[sub_resource type="Animation" id="Animation_fdifc"]
+length = 0.001
+
+[sub_resource type="Animation" id="Animation_tcfgv"]
+resource_name = "main"
+length = 74.0
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_8krki"]
+_data = {
+&"RESET": SubResource("Animation_fdifc"),
+&"main": SubResource("Animation_tcfgv")
+}
+
 [node name="Node3D" type="Node3D" unique_id=1612798206]
 script = ExtResource("4_text")
 lyric_ring_path = NodePath("stage/CollisionShape3D/LyricRing")
+camera_follow_speed = 1.0
 character_theme_colors = PackedColorArray(1, 0.4, 0.68, 1, 0.62, 0.04, 0.1, 1)
-silhouette_enabled = null
-silhouette_character_color = null
-silhouette_stage_color = null
-silhouette_backdrop_color = null
-silhouette_bar_color = null
-silhouette_transition_duration = null
+silhouette_ranges = PackedVector2Array(0, 10, 51, 71.04)
+silhouette_bar_color = Color(0, 0, 0, 1)
+silhouette_transition_duration = 0.0
 
 [node name="stage" type="StaticBody3D" parent="." unique_id=1970860928]
 physics_material_override = SubResource("PhysicsMaterial_glnxa")
@@ -64,6 +76,10 @@ mesh = SubResource("CylinderMesh_backdrop")
 script = ExtResource("8_backdrop")
 block_count = Vector2(14, 14)
 scroll_speed_y = 0.025
+
+[node name="ImageFlyEvent" type="Node3D" parent="stage" unique_id=1926754103]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 30, 8)
+script = ExtResource("9_fly")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="stage" unique_id=382366739]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.001, 8)
@@ -125,4 +141,6 @@ lyric_ring_path = NodePath("../../stage/CollisionShape3D/LyricRing")
 
 [node name="BGM" type="AudioStreamPlayer" parent="." unique_id=933197175]
 stream = ExtResource("3_bgm")
-autoplay = true
+
+[node name="Event" type="AnimationPlayer" parent="." unique_id=1930621313]
+libraries/ = SubResource("AnimationLibrary_8krki")

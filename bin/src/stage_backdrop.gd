@@ -26,23 +26,76 @@ extends MeshInstance3D
 ## 律动条压暗带强度；只压暗条后方，避免整面背景过黑。
 @export_range(0.0, 1.0, 0.01) var bar_band_darkness: float = 0.55
 
+@export_group("Background")
+## 普通状态随机背景素材目录。
+@export_dir var background_directory: String = "res://bin/asset/image/bg"
+## 普通背景素材亮度。
+@export_range(0.0, 1.0, 0.01) var texture_brightness: float = 0.9
+## 背景素材交叉淡入的默认时长。
+@export_range(0.05, 5.0, 0.05) var texture_switch_duration: float = 1.2
+
 @export_group("Theme Split")
 ## 半圆分界线在圆周上的偏移，0 到 1。
 @export_range(0.0, 1.0, 0.01) var split_angle: float = 0.0
 ## 分界线两侧颜色的柔化宽度。
 @export_range(0.0, 0.25, 0.001) var split_softness: float = 0.18
 
+## 圆柱背景材质。
 var _material: ShaderMaterial
+## 主题色过渡 Tween。
 var _theme_tween: Tween
+## 背景素材交叉淡入 Tween。
+var _texture_tween: Tween
+## 黑白块剪影切换 Tween。
+var _checker_tween: Tween
+## 当前显示的两侧主题色。
 var _color_a: Color
 var _color_b: Color
+## 主题色对半分裂程度。
 var _split_amount: float = 0.0
+## 背景目录中加载的素材。
+var _background_textures: Array[Texture2D] = []
+## 交叉淡入的当前素材与下一张素材。
+var _texture_a: Texture2D
+var _texture_b: Texture2D
+## 当前素材索引。
+var _current_texture_index: int = -1
+## 正在淡入的素材索引。
+var _next_texture_index: int = -1
+## 素材交叉淡入程度，0 为当前素材，1 为下一张素材。
+var _texture_mix: float = 0.0
+## 黑白块剪影程度，0 为普通素材，1 为剪影。
+var _checker_mix: float = 0.0
 
 
 ## 创建背景 ShaderMaterial 并应用初始主题色。
 func _ready() -> void:
 	_build_material()
+	# 黑白块与主题色作为舞台常驻背景保留；飞入素材是额外叠加的独立效果。
 	set_theme(base_theme_color)
+	_apply_to_shader()
+
+
+## 扫描背景目录并选中第一张随机素材。
+func _load_background_textures() -> void:
+	_background_textures.clear()
+	var directory := DirAccess.open(background_directory)
+	if directory == null:
+		push_warning("StageBackdrop: 无法打开背景目录: %s" % background_directory)
+		return
+	var files := directory.get_files()
+	files.sort()
+	for file in files:
+		if file.get_extension().to_lower() != "png":
+			continue
+		var loaded := load(background_directory.path_join(file)) as Texture2D
+		if loaded != null:
+			_background_textures.append(loaded)
+	if _background_textures.is_empty():
+		return
+	_current_texture_index = randi() % _background_textures.size()
+	_texture_a = _background_textures[_current_texture_index]
+	_texture_b = _texture_a
 
 
 ## 立即设置统一主题色。
@@ -106,13 +159,61 @@ func transition_theme(old_color: Color, new_color: Color, duration: float) -> vo
 	_theme_tween.tween_callback(_finish_theme_transition)
 
 
+## 随机切换到另一张背景素材并交叉淡入。
+## [param duration] 过渡时长；小于 0 时使用默认值。
+func switch_random_background(duration: float = -1.0) -> void:
+	if _background_textures.size() <= 1:
+		return
+	var fade_duration := texture_switch_duration if duration < 0.0 else duration
+	var candidates: Array[int] = []
+	for i in _background_textures.size():
+		if i != _current_texture_index:
+			candidates.append(i)
+	if candidates.is_empty():
+		return
+	if _texture_tween != null and _texture_tween.is_valid():
+		_texture_tween.kill()
+	_next_texture_index = candidates[randi() % candidates.size()]
+	_texture_a = _background_textures[_current_texture_index]
+	_texture_b = _background_textures[_next_texture_index]
+	_texture_mix = 0.0
+	_apply_to_shader()
+	if fade_duration <= 0.0:
+		_finish_texture_switch()
+		return
+	_texture_tween = create_tween()
+	_texture_tween.tween_method(_set_texture_mix, 0.0, 1.0, fade_duration) \
+		.set_trans(Tween.TRANS_SINE) \
+		.set_ease(Tween.EASE_IN_OUT)
+	_texture_tween.tween_callback(_finish_texture_switch)
+
+
+## 在普通素材与黑白块剪影之间渐变。
+## [param active] true 显示黑白块，false 显示背景素材。
+## [param duration] 过渡时长；小于等于 0 时立即应用。
+func set_checker_mode(active: bool, duration: float) -> void:
+	if _checker_tween != null and _checker_tween.is_valid():
+		_checker_tween.kill()
+	var target := 1.0 if active else 0.0
+	if duration <= 0.0:
+		_checker_mix = target
+		_apply_to_shader()
+		return
+	_checker_tween = create_tween()
+	_checker_tween.tween_method(_set_checker_mix, _checker_mix, target, duration) \
+		.set_trans(Tween.TRANS_SINE) \
+		.set_ease(Tween.EASE_IN_OUT)
+
+
 ## 构建圆柱背景使用的着色器。
 func _build_material() -> void:
 	var shader := Shader.new()
 	shader.code = """
 shader_type spatial;
-render_mode unshaded, cull_disabled;
+render_mode unshaded, cull_disabled, blend_mix;
 
+uniform sampler2D bg_texture_a : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D bg_texture_b : source_color, filter_linear_mipmap, repeat_enable;
 uniform vec4 color_a : source_color = vec4(1.0, 0.4, 0.68, 1.0);
 uniform vec4 color_b : source_color = vec4(1.0, 0.4, 0.68, 1.0);
 uniform vec4 white_color : source_color = vec4(1.0);
@@ -127,6 +228,9 @@ uniform float bottom_darkness = 0.15;
 uniform float bar_band_center = 0.45;
 uniform float bar_band_width = 0.22;
 uniform float bar_band_darkness = 0.55;
+uniform float texture_mix = 0.0;
+uniform float checker_mix = 0.0;
+uniform float texture_brightness = 0.9;
 
 void fragment() {
 	vec2 uv = UV;
@@ -141,12 +245,38 @@ void fragment() {
 	float height_shade = mix(1.0 - bottom_darkness, 1.0, smoothstep(0.05, 0.9, UV.y));
 	float band = 1.0 - smoothstep(0.0, bar_band_width, abs(UV.y - bar_band_center));
 	height_shade *= mix(1.0, 1.0 - bar_band_darkness, band);
+	// 只在剪影事件中显示黑白块，平时由 ALPHA 淡出为透明。
 	ALBEDO = block_color * brightness * height_shade;
+	ALPHA = 1.0;
 }
 """
 	_material = ShaderMaterial.new()
 	_material.shader = shader
+	# 背景是透明材质，必须比律动条和角色更早绘制，避免盖住前景。
+	_material.render_priority = -10
 	material_override = _material
+
+
+## 完成背景素材切换。
+func _finish_texture_switch() -> void:
+	if _next_texture_index >= 0:
+		_current_texture_index = _next_texture_index
+	_texture_a = _texture_b
+	_texture_mix = 0.0
+	_next_texture_index = -1
+	_apply_to_shader()
+
+
+## 设置素材交叉淡入程度。
+func _set_texture_mix(value: float) -> void:
+	_texture_mix = value
+	_apply_to_shader()
+
+
+## 设置黑白块剪影程度。
+func _set_checker_mix(value: float) -> void:
+	_checker_mix = value
+	_apply_to_shader()
 
 
 ## 设置分界线的过渡程度。
@@ -178,6 +308,11 @@ func _finish_theme_transition() -> void:
 func _apply_to_shader() -> void:
 	if _material == null:
 		return
+	_material.set_shader_parameter("bg_texture_a", _texture_a)
+	_material.set_shader_parameter("bg_texture_b", _texture_b)
+	_material.set_shader_parameter("texture_mix", _texture_mix)
+	_material.set_shader_parameter("checker_mix", _checker_mix)
+	_material.set_shader_parameter("texture_brightness", texture_brightness)
 	_material.set_shader_parameter("color_a", _color_a)
 	_material.set_shader_parameter("color_b", _color_b)
 	_material.set_shader_parameter("white_color", white_color)

@@ -71,7 +71,7 @@ signal lyrics_finished
 ## 剪影时间区间，x 为开始秒数，y 为结束秒数。
 @export var silhouette_ranges: PackedVector2Array = PackedVector2Array([
 	Vector2(0.0, 10.0),
-	Vector2(47.15, 71.04),
+	Vector2(51.00, 71.04),
 ])
 ## 剪影中人物使用的颜色。
 @export var silhouette_character_color: Color = Color.WHITE
@@ -83,6 +83,13 @@ signal lyrics_finished
 @export var silhouette_bar_color: Color = Color.WHITE
 ## 进入和退出剪影时所有元素的渐变时长。
 @export_range(0.0, 2.0, 0.05) var silhouette_transition_duration: float = 0.45
+## 飞入素材事件节点路径。
+@export var image_event_path: NodePath = ^"stage/ImageFlyEvent":
+	set(value):
+		image_event_path = value
+		_bind_performance()
+## 每隔多少句歌词触发一次飞入素材事件，1 表示每句都触发。
+@export_range(1, 16, 1) var image_event_every_lines: int = 1
 
 ## 当前绑定的歌词环模板。
 var _lyric_ring: LyricRing
@@ -118,6 +125,10 @@ var _camera_target_angle: float = 0.0
 var _camera_following: bool = false
 ## 已收到的歌词句数。
 var _line_count: int = 0
+## 飞入素材事件的歌词计数。
+var _image_event_line_count: int = 0
+## 飞入素材事件节点。
+var _image_event: Node
 ## 当前舞台地面网格。
 var _stage_mesh: MeshInstance3D
 ## 角色残留上层节点。
@@ -149,6 +160,9 @@ func _ready() -> void:
 	_bind_lyric_ring()
 	_bind_bgm()
 	_bind_performance()
+
+	_bgm = get_node_or_null(bgm_path) as AudioStreamPlayer
+	_bgm.play()
 
 
 ## 从指定时间开始播放歌词。
@@ -280,6 +294,7 @@ func _bind_performance() -> void:
 	_camera_rig = get_node_or_null(camera_rig_path) as Node3D
 	_rhythm_bars = get_node_or_null(rhythm_bars_path)
 	_backdrop = get_node_or_null(backdrop_path)
+	_image_event = get_node_or_null(image_event_path)
 	_stage_mesh = (
 		_stage.get_node_or_null("CollisionShape3D/MeshInstance3D") as MeshInstance3D
 		if _stage != null
@@ -395,6 +410,8 @@ func _enter_silhouette() -> void:
 			silhouette_backdrop_color,
 			silhouette_transition_duration
 		)
+	if _backdrop != null and _backdrop.has_method("set_checker_mode"):
+		_backdrop.call("set_checker_mode", true, silhouette_transition_duration)
 
 
 ## 退出剪影：所有颜色渐变回角色主题色，结束后撤销材质覆盖。
@@ -411,6 +428,8 @@ func _exit_silhouette() -> void:
 	_fade_bars_to(theme_color, silhouette_transition_duration)
 	if _backdrop != null and _backdrop.has_method("fade_theme"):
 		_backdrop.call("fade_theme", theme_color, silhouette_transition_duration)
+	if _backdrop != null and _backdrop.has_method("set_checker_mode"):
+		_backdrop.call("set_checker_mode", false, silhouette_transition_duration)
 	if silhouette_transition_duration <= 0.0:
 		_finish_exit_silhouette()
 	elif _silhouette_tween != null and _silhouette_tween.is_valid():
@@ -668,13 +687,28 @@ func _on_bgm_finished() -> void:
 	get_tree().quit()
 
 
-## 转发歌词开始信号，并按配置每若干句触发一次舞台旋转。
+## 转发歌词开始信号，并按配置触发舞台旋转与飞入素材事件。
 func _on_line_spawned(index: int, time: float, text: String) -> void:
 	lyric_line_started.emit(index, time, text)
 	_line_count += 1
+	# 按歌词句数触发舞台旋转和角色集合切换。
 	if auto_rotate_with_lyrics and rotate_every_lines > 0:
 		if _line_count % rotate_every_lines == 0:
 			rotate_stage_and_switch_character()
+	# 飞入素材事件使用独立计数，默认每句歌词触发一次。
+	_image_event_line_count += 1
+	if image_event_every_lines > 0:
+		if _image_event_line_count % image_event_every_lines == 0:
+			_trigger_image_event()
+
+
+## 触发一次背景素材飞入事件。
+func _trigger_image_event() -> void:
+	if _image_event == null:
+		return
+	if not _image_event.has_method("trigger_event"):
+		return
+	_image_event.call("trigger_event")
 
 
 ## 转发歌词销毁信号。
