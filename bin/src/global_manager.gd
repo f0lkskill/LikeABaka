@@ -24,6 +24,10 @@ signal lyrics_finished
 	set(value):
 		bgm_path = value
 		_bind_bgm()
+@export var event_path: NodePath = ^"Event":
+	set(value):
+		event_path = value
+		_bind_event()
 ## 舞台根节点路径；旋转时摄像机会作为它的子节点同步移动。
 @export var stage_path: NodePath = ^"stage":
 	set(value):
@@ -92,6 +96,8 @@ signal lyrics_finished
 var _lyric_ring: LyricRing
 ## 当前绑定的 BGM 播放器。
 var _bgm: AudioStreamPlayer
+## Event 节点的动画播放器。
+var _event: AnimationPlayer
 ## 当前舞台根节点。
 var _stage: Node3D
 ## 当前角色节点。
@@ -155,6 +161,10 @@ func _ready() -> void:
 	_bind_lyric_ring()
 	_bind_bgm()
 	_bind_performance()
+	_bind_event()
+	# 绑定 Event 节点后自动播放 main 动画组。
+	if _event != null:
+		_event.play("main")
 
 	_bgm = get_node_or_null(bgm_path) as AudioStreamPlayer
 	_bgm.play()
@@ -724,6 +734,13 @@ func _bind_bgm() -> void:
 	if not _bgm.finished.is_connected(_on_bgm_finished):
 		_bgm.finished.connect(_on_bgm_finished)
 
+## 绑定 Event 节点的 AnimationPlayer。
+func _bind_event() -> void:
+	if Engine.is_editor_hint() or not is_node_ready():
+		return
+	_event = get_node_or_null(event_path) as AnimationPlayer
+	if _event == null:
+		push_warning("GlobalManager: 找不到 Event 节点: %s" % event_path)
 
 ## 确保歌词环已绑定。
 func _ensure_lyric_ring() -> void:

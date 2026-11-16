@@ -47,10 +47,34 @@ reflected_light_source = 2
 
 [sub_resource type="Animation" id="Animation_fdifc"]
 length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("stage/StageBackdrop:scroll_speed")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.025]
+}
 
 [sub_resource type="Animation" id="Animation_tcfgv"]
 resource_name = "main"
 length = 74.0
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("stage/StageBackdrop:scroll_speed")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 4.0299478),
+"transitions": PackedFloat32Array(2, 1),
+"update": 0,
+"values": [0.025, 0.2]
+}
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_8krki"]
 _data = {
