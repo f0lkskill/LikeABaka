@@ -53,7 +53,6 @@ mesh = SubResource("CylinderMesh_glnxa")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.0010117292, 8.099596)
 script = ExtResource("5_lyric")
 stage_mesh_path = NodePath("../MeshInstance3D")
-start_time = 0.0
 text_depth_layers = 6
 double_sided = true
 radius_padding = -1.0
@@ -85,15 +84,18 @@ distance_fade_enabled = true
 transform = Transform3D(1.2, 0, 0, 0, 1.2, 0, 0, 0, 1.2, 0, 24.487652, 6)
 texture = ExtResource("1_fpb3j")
 script = ExtResource("2_hetxm")
+double_sided = true
 lyric_ring_path = NodePath("../../stage/CollisionShape3D/LyricRing")
 
-[node name="Node3D" type="Node3D" parent="." unique_id=747132078]
+[node name="Node3D" type="Node3D" parent="stage" unique_id=747132078]
 
-[node name="Camera3D" type="Camera3D" parent="Node3D" unique_id=345927553]
+[node name="Camera3D" type="Camera3D" parent="stage/Node3D" unique_id=345927553]
 transform = Transform3D(1, 0, 0, 0, 0.99762666, 0.068855666, 0, -0.068855666, 0.9976266, 0, 27.66735, 34.8293)
 script = ExtResource("6_camera")
-zoom_strength_deg = 100.0
+bgm_path = NodePath("../../../BGM")
+zoom_strength_deg = 120.0
 segment_duration = 0.30000000000000004
+segment_transition_duration = 1.0
 
 [node name="BGM" type="AudioStreamPlayer" parent="." unique_id=933197175]
 stream = ExtResource("3_bgm")

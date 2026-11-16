@@ -10,8 +10,11 @@ extends Sprite3D
 
 ## 歌词环节点路径，用于监听新歌词出现事件。
 @export var lyric_ring_path: NodePath = ^"../../LyricRing"
-## 角色立绘目录；目录下的 png 会全部作为候选。
-@export_dir var texture_directory: String = "res://bin/asset/image/cha_1"
+## 角色立绘目录集合；切换角色时按顺序循环，当前目录下的 png 作为随机候选。
+@export var character_directories: PackedStringArray = PackedStringArray([
+	"res://bin/asset/image/cha_1",
+	"res://bin/asset/image/cha_2",
+])
 ## 新歌词出现后到开始切换立绘的最短随机延迟。
 @export_range(0.0, 1.0, 0.01) var min_switch_delay: float = 0.05
 ## 新歌词出现后到开始切换立绘的最长随机延迟。
@@ -25,16 +28,48 @@ var _current_texture: Texture2D
 var _transition_tween: Tween
 var _switching: bool = false
 var _switch_token: int = 0
+var _character_index: int = 0
+var _texture_directory: String = ""
 
 
 ## 初始化候选贴图、残留上层节点，并连接歌词信号。
 func _ready() -> void:
 	_current_texture = texture
+	if not character_directories.is_empty():
+		_texture_directory = character_directories[0]
 	_load_textures()
 	_create_overlay()
 	var lyric_ring := get_node_or_null(lyric_ring_path)
 	if lyric_ring != null and lyric_ring.has_signal("line_spawned"):
 		lyric_ring.line_spawned.connect(_on_line_spawned)
+
+
+## 切换到下一套角色立绘，并优先选择同名贴图保持表情连续。
+## 切换后所有随机立绘都只从当前角色目录中选择。
+func switch_character_set() -> void:
+	if character_directories.size() <= 1:
+		return
+	var previous_name := ""
+	if _current_texture != null:
+		previous_name = _current_texture.resource_path.get_file()
+	_character_index = (_character_index + 1) % character_directories.size()
+	_texture_directory = character_directories[_character_index]
+	_load_textures()
+	if _textures.is_empty():
+		return
+	var next_texture: Texture2D
+	for candidate in _textures:
+		if candidate.resource_path.get_file() == previous_name:
+			next_texture = candidate
+			break
+	if next_texture == null:
+		for candidate in _textures:
+			if candidate.resource_path.get_file() == "normal.png":
+				next_texture = candidate
+				break
+	if next_texture == null:
+		next_texture = _textures[0]
+	_start_residual_transition(next_texture)
 
 
 ## 由外部选项系统调用，经过随机短延迟后触发一次随机切换。
@@ -60,12 +95,13 @@ func _on_line_spawned(_index: int, _time: float, _text: String) -> void:
 	_perform_random_switch()
 
 
-## 扫描 [member texture_directory] 下的所有 png，并缓存为候选贴图。
+## 扫描当前角色目录下的所有 png，并缓存为候选贴图。
 ## 若目录不可用，则退回到当前 Sprite3D 的 texture。
 func _load_textures() -> void:
-	var directory := DirAccess.open(texture_directory)
+	_textures.clear()
+	var directory := DirAccess.open(_texture_directory)
 	if directory == null:
-		push_warning("C1: 无法打开角色立绘目录: %s" % texture_directory)
+		push_warning("C1: 无法打开角色立绘目录: %s" % _texture_directory)
 		if _current_texture != null:
 			_textures.append(_current_texture)
 		return
@@ -74,7 +110,7 @@ func _load_textures() -> void:
 	for file in files:
 		if file.get_extension().to_lower() != "png":
 			continue
-		var loaded := load(texture_directory.path_join(file)) as Texture2D
+		var loaded := load(_texture_directory.path_join(file)) as Texture2D
 		if loaded != null:
 			_textures.append(loaded)
 	if _textures.is_empty() and _current_texture != null:

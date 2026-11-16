@@ -24,17 +24,42 @@ signal lyrics_finished
 	set(value):
 		bgm_path = value
 		_bind_bgm()
+## 舞台根节点路径；旋转时摄像机会作为它的子节点同步移动。
+@export var stage_path: NodePath = ^"stage":
+	set(value):
+		stage_path = value
+		_bind_performance()
+## 角色 Sprite3D 路径，用于切换角色立绘集合。
+@export var character_path: NodePath = ^"charactor/C1":
+	set(value):
+		character_path = value
+		_bind_performance()
+## 每隔多少句歌词自动触发一次舞台旋转。
+@export_range(1, 16, 1) var rotate_every_lines: int = 3
+## 是否自动按歌词句数触发旋转。
+@export var auto_rotate_with_lyrics: bool = true
+## 舞台旋转 180 度所需时间。
+@export_range(0.1, 5.0, 0.05) var rotate_duration: float = 1.2
 
 ## 当前绑定的歌词环模板。
 var _lyric_ring: LyricRing
 ## 当前绑定的 BGM 播放器。
 var _bgm: AudioStreamPlayer
+## 当前舞台根节点。
+var _stage: Node3D
+## 当前角色节点。
+var _character: Node
+## 是否正在执行旋转，避免重叠旋转。
+var _rotating: bool = false
+## 已收到的歌词句数。
+var _line_count: int = 0
 
 
 ## 初始化并绑定歌词环模板。
 func _ready() -> void:
 	_bind_lyric_ring()
 	_bind_bgm()
+	_bind_performance()
 
 
 ## 从指定时间开始播放歌词。
@@ -85,6 +110,30 @@ func set_lyrics(entries: Array) -> void:
 		_lyric_ring.set_lyrics(entries)
 
 
+## 让舞台旋转 180 度，并同步切换角色立绘集合。
+## 摄像机作为舞台子节点会一起旋转，角色立绘保持原位，因此旋转后呈现背面。
+## 旋转使用 Inverted Check 曲线，结束后复位旋转状态。
+func rotate_stage_and_switch_character() -> void:
+	if Engine.is_editor_hint() or _rotating:
+		return
+	_bind_performance()
+	if _stage == null:
+		return
+	_rotating = true
+	if _character != null and _character.has_method("switch_character_set"):
+		_character.switch_character_set()
+	var start_angle := _stage.rotation.y
+	var target_angle := start_angle + PI
+	var tween := create_tween()
+	tween.tween_method(
+		_set_stage_rotation.bind(start_angle, target_angle),
+		0.0,
+		1.0,
+		rotate_duration
+	)
+	tween.finished.connect(_on_stage_rotation_finished)
+
+
 ## 当前歌词时间轴时钟，单位为秒。
 func get_lyric_time() -> float:
 	_ensure_lyric_ring()
@@ -126,6 +175,30 @@ func _bind_lyric_ring() -> void:
 		_lyric_ring.playback_finished.connect(_on_playback_finished)
 
 
+## 绑定舞台和角色节点。
+func _bind_performance() -> void:
+	if not is_node_ready():
+		return
+	_stage = get_node_or_null(stage_path) as Node3D
+	_character = get_node_or_null(character_path)
+
+
+## 设置当前舞台的旋转角度，供 Tween 逐帧调用。
+## [param progress] 线性进度，范围 0 到 1。
+## [param start_angle] 起始角度，单位为弧度。
+## [param target_angle] 目标角度，单位为弧度。
+func _set_stage_rotation(progress: float, start_angle: float, target_angle: float) -> void:
+	if _stage == null:
+		return
+	var eased := 1.0 - pow(1.0 - progress, 3.0)
+	_stage.rotation.y = lerpf(start_angle, target_angle, eased)
+
+
+## 旋转完成时清除旋转锁。
+func _on_stage_rotation_finished() -> void:
+	_rotating = false
+
+
 ## 绑定 BGM，并在播放结束后退出进程。
 func _bind_bgm() -> void:
 	if Engine.is_editor_hint() or not is_node_ready():
@@ -151,9 +224,13 @@ func _on_bgm_finished() -> void:
 	get_tree().quit()
 
 
-## 转发歌词开始信号。
+## 转发歌词开始信号，并按配置每若干句触发一次舞台旋转。
 func _on_line_spawned(index: int, time: float, text: String) -> void:
 	lyric_line_started.emit(index, time, text)
+	_line_count += 1
+	if auto_rotate_with_lyrics and rotate_every_lines > 0:
+		if _line_count % rotate_every_lines == 0:
+			rotate_stage_and_switch_character()
 
 
 ## 转发歌词销毁信号。
