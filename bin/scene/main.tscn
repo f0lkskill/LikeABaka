@@ -46,7 +46,7 @@ ambient_light_source = 3
 reflected_light_source = 2
 
 [sub_resource type="Animation" id="Animation_fdifc"]
-length = 0.001
+length = 70.0
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
@@ -54,10 +54,10 @@ tracks/0/path = NodePath("stage/StageBackdrop:scroll_speed")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
+"times": PackedFloat32Array(0, 20),
+"transitions": PackedFloat32Array(2, 2),
 "update": 0,
-"values": [0.025]
+"values": [0.025, 0.5]
 }
 
 [sub_resource type="Animation" id="Animation_tcfgv"]
@@ -89,7 +89,7 @@ camera_follow_speed = 1.0
 character_theme_colors = PackedColorArray(1, 0.4, 0.68, 1, 0.62, 0.04, 0.1, 1)
 silhouette_ranges = PackedVector2Array(0, 10, 51, 71.04)
 silhouette_bar_color = Color(0, 0, 0, 1)
-silhouette_transition_duration = 0.0
+silhouette_transition_duration = 0.45
 
 [node name="stage" type="StaticBody3D" parent="." unique_id=1970860928]
 physics_material_override = SubResource("PhysicsMaterial_glnxa")
