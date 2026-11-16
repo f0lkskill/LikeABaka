@@ -42,7 +42,7 @@ lyric_ring_path = NodePath("stage/CollisionShape3D/LyricRing")
 physics_material_override = SubResource("PhysicsMaterial_glnxa")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="stage" unique_id=382366739]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0010117292, 1.0140195)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0010117292, 4.561541)
 shape = SubResource("CylinderShape3D_glnxa")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="stage/CollisionShape3D" unique_id=184215688]
@@ -50,9 +50,24 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -4.5677795, 0)
 mesh = SubResource("CylinderMesh_glnxa")
 
 [node name="LyricRing" type="Node3D" parent="stage/CollisionShape3D" unique_id=738443222]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.0010117292, -0.0023311377)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.0010117292, 8.099596)
 script = ExtResource("5_lyric")
 stage_mesh_path = NodePath("../MeshInstance3D")
+start_time = 0.0
+text_depth_layers = 6
+double_sided = true
+radius_padding = -1.0
+
+[node name="StageRhythmBars" type="Node3D" parent="stage/CollisionShape3D" unique_id=1231290947]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, 3.1225853)
+script = ExtResource("7_bars")
+stage_mesh_path = NodePath("../MeshInstance3D")
+bgm_path = NodePath("../../../BGM")
+arc_degrees = 260.0
+bar_count = 46
+base_height_offset = 0.5
+max_height = 40.0
+bar_color = Color(1, 0.572181, 0.7506007, 1)
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=81278775]
 environment = SubResource("Environment_env")
@@ -77,11 +92,9 @@ lyric_ring_path = NodePath("../../stage/CollisionShape3D/LyricRing")
 [node name="Camera3D" type="Camera3D" parent="Node3D" unique_id=345927553]
 transform = Transform3D(1, 0, 0, 0, 0.99762666, 0.068855666, 0, -0.068855666, 0.9976266, 0, 27.66735, 34.8293)
 script = ExtResource("6_camera")
+zoom_strength_deg = 100.0
+segment_duration = 0.30000000000000004
 
 [node name="BGM" type="AudioStreamPlayer" parent="." unique_id=933197175]
 stream = ExtResource("3_bgm")
 autoplay = true
-
-[node name="StageRhythmBars" type="Node3D" parent="." unique_id=1231290947]
-script = ExtResource("7_bars")
-base_height_offset = 0.5
