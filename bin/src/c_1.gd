@@ -23,7 +23,7 @@ signal character_set_changed(index: int)
 ## 新歌词出现后到开始切换立绘的最长随机延迟。
 @export_range(0.0, 2.0, 0.01) var max_switch_delay: float = 0.2
 ## 普通随机立绘在旧立绘上淡入的时长。
-@export_range(0.05, 1.0, 0.01) var transition_duration: float = 0.18
+@export_range(0.05, 1.0, 0.01) var transition_duration: float = 0.4
 ## 角色 1/2 整体切换时的过渡时长，通常比普通随机切换更长。
 @export_range(0.05, 2.0, 0.01) var character_set_transition_duration: float = 0.7
 ## 各角色立绘相对默认位置的局部偏移，索引与 character_directories 对齐。
@@ -151,12 +151,13 @@ func _create_overlay() -> void:
 	_overlay = Sprite3D.new()
 	_overlay.name = "C1ResidualOverlay"
 	_overlay.texture = _current_texture
-	_overlay.transform = Transform3D(Basis(), Vector3(0.0, 0.0, 0.01))
+	_overlay.transform = Transform3D(Basis(), Vector3(0.0, 0.0, 0.02))
 	_overlay.pixel_size = pixel_size
 	_overlay.billboard = billboard
 	_overlay.shaded = shaded
 	_overlay.double_sided = double_sided
-	_overlay.no_depth_test = no_depth_test
+	# 上层贴图必须稳定盖在底图上，避免深度冲突导致淡入不可见。
+	_overlay.no_depth_test = true
 	_overlay.fixed_size = fixed_size
 	_overlay.alpha_cut = alpha_cut
 	_overlay.modulate = Color(1, 1, 1, 0)
