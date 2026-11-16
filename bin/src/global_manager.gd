@@ -69,6 +69,8 @@ signal lyrics_finished
 @export_range(0.0, 3.0, 0.05) var backdrop_transition_duration: float = 0.9
 ## 是否启用剪影事件。
 @export var silhouette_enabled: bool = true
+## 是否按时间区间自动开关剪影；用 Event/动画手动控制时请关闭。
+@export var auto_silhouette_events: bool = true
 ## 剪影时间区间，x 为开始秒数，y 为结束秒数。
 @export var silhouette_ranges: PackedVector2Array = PackedVector2Array([
 	Vector2(0.0, 10.0),
@@ -410,6 +412,8 @@ func _process(delta: float) -> void:
 
 ## 根据播放时间切换黑白剪影事件。
 func _update_silhouette_event() -> void:
+	if not auto_silhouette_events:
+		return
 	if not silhouette_enabled:
 		if _silhouette_active:
 			_set_silhouette(false)
