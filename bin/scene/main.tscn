@@ -37,12 +37,16 @@ reflected_light_source = 2
 [node name="Node3D" type="Node3D" unique_id=1612798206]
 script = ExtResource("4_text")
 lyric_ring_path = NodePath("stage/CollisionShape3D/LyricRing")
+camera_rig_path = NodePath("stage/Node3D")
+camera_follow_speed = 1.8
+rhythm_bars_path = NodePath("stage/CollisionShape3D/StageRhythmBars")
+theme_transition_duration = 0.45
 
 [node name="stage" type="StaticBody3D" parent="." unique_id=1970860928]
 physics_material_override = SubResource("PhysicsMaterial_glnxa")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="stage" unique_id=382366739]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0010117292, 4.561541)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.001, 8)
 shape = SubResource("CylinderShape3D_glnxa")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="stage/CollisionShape3D" unique_id=184215688]
@@ -50,7 +54,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -4.5677795, 0)
 mesh = SubResource("CylinderMesh_glnxa")
 
 [node name="LyricRing" type="Node3D" parent="stage/CollisionShape3D" unique_id=738443222]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.0010117292, 8.099596)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.0010117292, 12.423784)
 script = ExtResource("5_lyric")
 stage_mesh_path = NodePath("../MeshInstance3D")
 text_depth_layers = 6
@@ -58,15 +62,35 @@ double_sided = true
 radius_padding = -1.0
 
 [node name="StageRhythmBars" type="Node3D" parent="stage/CollisionShape3D" unique_id=1231290947]
-transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, 3.1225853)
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, 7.1425304)
 script = ExtResource("7_bars")
 stage_mesh_path = NodePath("../MeshInstance3D")
 bgm_path = NodePath("../../../BGM")
+center_angle_deg = null
 arc_degrees = 260.0
 bar_count = 46
+bar_width = null
+radius_offset = null
 base_height_offset = 0.5
+min_height = null
 max_height = 40.0
 bar_color = Color(1, 0.572181, 0.7506007, 1)
+peak_sharpness = null
+activity_gain = null
+peak_weight = null
+response_speed = null
+min_frequency = null
+max_frequency = null
+
+[node name="Node3D" type="Node3D" parent="stage" unique_id=747132078]
+
+[node name="Camera3D" type="Camera3D" parent="stage/Node3D" unique_id=345927553]
+transform = Transform3D(1, 0, 0, 0, 0.99762666, 0.068855666, 0, -0.068855666, 0.9976266, 0, 27.66735, 33.22957)
+script = ExtResource("6_camera")
+bgm_path = NodePath("../../../BGM")
+zoom_strength_deg = 120.0
+segment_duration = 0.30000000000000004
+segment_transition_duration = 1.0
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=81278775]
 environment = SubResource("Environment_env")
@@ -79,23 +103,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6.1396065, 0)
 distance_fade_enabled = true
 
 [node name="charactor" type="Node3D" parent="." unique_id=1316564881]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)
 
 [node name="C1" type="Sprite3D" parent="charactor" unique_id=1486681781]
-transform = Transform3D(1.2, 0, 0, 0, 1.2, 0, 0, 0, 1.2, 0, 24.487652, 6)
+transform = Transform3D(1.2, 0, 0, 0, 1.2, 0, 0, 0, 1.2, 0, 24.488, 0)
 texture = ExtResource("1_fpb3j")
 script = ExtResource("2_hetxm")
-double_sided = true
 lyric_ring_path = NodePath("../../stage/CollisionShape3D/LyricRing")
-
-[node name="Node3D" type="Node3D" parent="stage" unique_id=747132078]
-
-[node name="Camera3D" type="Camera3D" parent="stage/Node3D" unique_id=345927553]
-transform = Transform3D(1, 0, 0, 0, 0.99762666, 0.068855666, 0, -0.068855666, 0.9976266, 0, 27.66735, 34.8293)
-script = ExtResource("6_camera")
-bgm_path = NodePath("../../../BGM")
-zoom_strength_deg = 120.0
-segment_duration = 0.30000000000000004
-segment_transition_duration = 1.0
 
 [node name="BGM" type="AudioStreamPlayer" parent="." unique_id=933197175]
 stream = ExtResource("3_bgm")

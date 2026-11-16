@@ -34,12 +34,31 @@ signal lyrics_finished
 	set(value):
 		character_path = value
 		_bind_performance()
+## 摄像机支架路径；旋转舞台时会对该节点施加反向滞后旋转。
+@export var camera_rig_path: NodePath = ^"stage/Node3D":
+	set(value):
+		camera_rig_path = value
+		_bind_performance()
+## 摄像机追随舞台旋转的速度；越小滞后越明显。
+@export_range(0.5, 20.0, 0.1) var camera_follow_speed: float = 1.8
 ## 每隔多少句歌词自动触发一次舞台旋转。
 @export_range(1, 16, 1) var rotate_every_lines: int = 3
 ## 是否自动按歌词句数触发旋转。
 @export var auto_rotate_with_lyrics: bool = true
 ## 舞台旋转 180 度所需时间。
 @export_range(0.1, 5.0, 0.05) var rotate_duration: float = 1.2
+## 舞台律动条节点路径；角色切换时会同步主题色。
+@export var rhythm_bars_path: NodePath = ^"stage/CollisionShape3D/StageRhythmBars":
+	set(value):
+		rhythm_bars_path = value
+		_bind_performance()
+## 各角色对应的律动条主题色，索引与 character_directories 对齐。
+@export var character_theme_colors: PackedColorArray = PackedColorArray([
+	Color(1.0, 0.4, 0.68, 1.0),
+	Color(0.62, 0.04, 0.10, 1.0),
+])
+## 律动条主题色过渡时长。
+@export_range(0.0, 2.0, 0.05) var theme_transition_duration: float = 0.45
 
 ## 当前绑定的歌词环模板。
 var _lyric_ring: LyricRing
@@ -49,8 +68,26 @@ var _bgm: AudioStreamPlayer
 var _stage: Node3D
 ## 当前角色节点。
 var _character: Node
+## 当前摄像机支架节点。
+var _camera_rig: Node3D
+## 当前律动条节点。
+var _rhythm_bars: Node
+## 律动条主题色过渡 Tween。
+var _theme_tween: Tween
+## 旋转开始前的舞台全局变换。
+var _stage_start_transform: Transform3D
+## 旋转开始前的摄像机支架全局变换。
+var _camera_rig_start_transform: Transform3D
+## 角色所在的旋转轴心，使用世界坐标的 X/Z。
+var _rotation_pivot: Vector3
 ## 是否正在执行旋转，避免重叠旋转。
 var _rotating: bool = false
+## 摄像机当前追随角度。
+var _camera_follow_angle: float = 0.0
+## 摄像机追随目标角度。
+var _camera_target_angle: float = 0.0
+## 摄像机是否仍在追平舞台。
+var _camera_following: bool = false
 ## 已收到的歌词句数。
 var _line_count: int = 0
 
@@ -111,7 +148,8 @@ func set_lyrics(entries: Array) -> void:
 
 
 ## 让舞台旋转 180 度，并同步切换角色立绘集合。
-## 摄像机作为舞台子节点会一起旋转，角色立绘保持原位，因此旋转后呈现背面。
+## 摄像机作为舞台子节点会一起旋转，但会通过 [member camera_follow_speed]
+## 延迟追随舞台角度，并在舞台停下后继续追平，角色立绘保持原位。
 ## 旋转使用 Inverted Check 曲线，结束后复位旋转状态。
 func rotate_stage_and_switch_character() -> void:
 	if Engine.is_editor_hint() or _rotating:
@@ -122,11 +160,17 @@ func rotate_stage_and_switch_character() -> void:
 	_rotating = true
 	if _character != null and _character.has_method("switch_character_set"):
 		_character.switch_character_set()
-	var start_angle := _stage.rotation.y
-	var target_angle := start_angle + PI
+	_stage_start_transform = _stage.global_transform
+	_camera_rig_start_transform = (
+		_camera_rig.global_transform if _camera_rig != null else Transform3D()
+	)
+	_rotation_pivot = _get_rotation_pivot()
+	_camera_follow_angle = 0.0
+	_camera_target_angle = 0.0
+	_camera_following = true
 	var tween := create_tween()
 	tween.tween_method(
-		_set_stage_rotation.bind(start_angle, target_angle),
+		_set_stage_rotation.bind(PI),
 		0.0,
 		1.0,
 		rotate_duration
@@ -181,17 +225,108 @@ func _bind_performance() -> void:
 		return
 	_stage = get_node_or_null(stage_path) as Node3D
 	_character = get_node_or_null(character_path)
+	_camera_rig = get_node_or_null(camera_rig_path) as Node3D
+	_rhythm_bars = get_node_or_null(rhythm_bars_path)
+	if _character != null and _character.has_signal("character_set_changed"):
+		if not _character.is_connected("character_set_changed", _on_character_set_changed):
+			_character.connect("character_set_changed", _on_character_set_changed)
+		if not Engine.is_editor_hint() and _character.has_method("get_character_index"):
+			_apply_character_theme(_character.get_character_index(), 0.0)
 
 
 ## 设置当前舞台的旋转角度，供 Tween 逐帧调用。
+## 舞台和摄像机都围绕角色所在的 X/Z 轴心旋转，保证角色占位不变。
 ## [param progress] 线性进度，范围 0 到 1。
-## [param start_angle] 起始角度，单位为弧度。
-## [param target_angle] 目标角度，单位为弧度。
-func _set_stage_rotation(progress: float, start_angle: float, target_angle: float) -> void:
+## [param total_angle] 本次旋转总角度，单位为弧度。
+func _set_stage_rotation(progress: float, total_angle: float) -> void:
 	if _stage == null:
 		return
 	var eased := 1.0 - pow(1.0 - progress, 3.0)
-	_stage.rotation.y = lerpf(start_angle, target_angle, eased)
+	var angle := total_angle * eased
+	_stage.global_transform = _rotate_transform_around(
+		_stage_start_transform,
+		angle,
+		_rotation_pivot
+	)
+	_camera_target_angle = angle
+	if _camera_rig != null and _camera_following:
+		_camera_rig.global_transform = _rotate_transform_around(
+			_camera_rig_start_transform,
+			_camera_follow_angle,
+			_rotation_pivot
+		)
+
+
+## 每帧让摄像机延迟追随舞台角度；舞台停止后仍会继续追平。
+## [param delta] 本帧时间，用于计算平滑权重。
+func _process(delta: float) -> void:
+	if Engine.is_editor_hint() or not _camera_following or _camera_rig == null:
+		return
+	var weight := 1.0 - exp(-camera_follow_speed * delta)
+	_camera_follow_angle = lerpf(_camera_follow_angle, _camera_target_angle, weight)
+	_camera_rig.global_transform = _rotate_transform_around(
+		_camera_rig_start_transform,
+		_camera_follow_angle,
+		_rotation_pivot
+	)
+	if not _rotating and absf(_camera_follow_angle - _camera_target_angle) < 0.003:
+		_camera_follow_angle = _camera_target_angle
+		_camera_rig.global_transform = _rotate_transform_around(
+			_camera_rig_start_transform,
+			_camera_follow_angle,
+			_rotation_pivot
+		)
+		_camera_following = false
+
+
+## 角色集合变化时，平滑更新律动条主题色。
+## [param index] 当前角色集合索引。
+func _on_character_set_changed(index: int) -> void:
+	_apply_character_theme(index, theme_transition_duration)
+
+
+## 将指定角色索引对应的主题色应用到律动条。
+## [param index] 当前角色集合索引。
+## [param duration] 颜色过渡时长；小于等于 0 时立即应用。
+func _apply_character_theme(index: int, duration: float) -> void:
+	if Engine.is_editor_hint() or _rhythm_bars == null:
+		return
+	if character_theme_colors.is_empty():
+		return
+	var color := character_theme_colors[index % character_theme_colors.size()]
+	if _theme_tween != null and _theme_tween.is_valid():
+		_theme_tween.kill()
+	if duration <= 0.0:
+		_rhythm_bars.set("bar_color", color)
+		return
+	_theme_tween = create_tween()
+	_theme_tween.tween_property(_rhythm_bars, "bar_color", color, duration) \
+		.set_trans(Tween.TRANS_SINE) \
+		.set_ease(Tween.EASE_IN_OUT)
+
+
+## 返回角色当前世界坐标的 X/Z，作为舞台和摄像机的共同旋转轴心。
+func _get_rotation_pivot() -> Vector3:
+	var anchor := _character.get_parent() if _character != null else null
+	if anchor is Node3D:
+		var anchor_position := (anchor as Node3D).global_position
+		var pivot_y := _stage.global_position.y if _stage != null else 0.0
+		return Vector3(anchor_position.x, pivot_y, anchor_position.z)
+	if _stage != null:
+		return _stage.global_position
+	return Vector3.ZERO
+
+
+## 将变换围绕指定轴心绕 Y 轴旋转。
+## [param source] 旋转前的世界变换。
+## [param angle] 旋转角度，单位为弧度。
+## [param pivot] 旋转轴心，使用世界坐标。
+func _rotate_transform_around(source: Transform3D, angle: float, pivot: Vector3) -> Transform3D:
+	var rotation := Basis(Vector3.UP, angle)
+	return Transform3D(
+		rotation * source.basis,
+		pivot + rotation * (source.origin - pivot)
+	)
 
 
 ## 旋转完成时清除旋转锁。

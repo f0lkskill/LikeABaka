@@ -37,6 +37,11 @@ const ANALYZER_BUS := "BGM_Analyzer"
 	set(value):
 		bar_color = value
 		_apply_color()
+## 竖条顶部的透明度；用于形成向上透明的渐变。
+@export_range(0.0, 1.0, 0.01) var top_alpha: float = 0.05:
+	set(value):
+		top_alpha = value
+		_apply_color()
 
 @export_group("Reaction")
 ## 峰值锐度；越大越只有少数峰值条接近最高高度。
@@ -56,7 +61,7 @@ var _bars: Array[MeshInstance3D] = []
 var _heights: PackedFloat32Array = []
 var _base_positions: Array[Vector3] = []
 var _angles: PackedFloat32Array = []
-var _material: StandardMaterial3D
+var _material: ShaderMaterial
 var _stage_mesh: MeshInstance3D
 var _up_axis := Vector3.UP
 var _bgm: AudioStreamPlayer
@@ -161,11 +166,22 @@ func _resolve_stage() -> void:
 func _build_bars() -> void:
 	if _stage_mesh == null:
 		return
-	_material = StandardMaterial3D.new()
-	_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	_material.emission_enabled = true
-	_material.emission_energy_multiplier = 1.5
+	var shader := Shader.new()
+	shader.code = """
+shader_type spatial;
+render_mode unshaded, cull_disabled, blend_mix;
+uniform vec4 bar_color : source_color = vec4(1.0);
+uniform float top_alpha : hint_range(0.0, 1.0) = 0.05;
+
+void fragment() {
+	float fade = mix(top_alpha, 1.0, smoothstep(0.0, 1.0, UV.y));
+	ALBEDO = bar_color.rgb;
+	EMISSION = bar_color.rgb * 0.6;
+	ALPHA = bar_color.a * fade;
+}
+"""
+	_material = ShaderMaterial.new()
+	_material.shader = shader
 	_apply_color()
 	for i in _base_positions.size():
 		var quad := QuadMesh.new()
@@ -188,8 +204,8 @@ func _build_bars() -> void:
 func _apply_color() -> void:
 	if _material == null:
 		return
-	_material.albedo_color = bar_color
-	_material.emission = bar_color
+	_material.set_shader_parameter("bar_color", bar_color)
+	_material.set_shader_parameter("top_alpha", top_alpha)
 
 
 ## 创建或复用 [constant ANALYZER_BUS]，并把 BGM 绑定到该总线。
