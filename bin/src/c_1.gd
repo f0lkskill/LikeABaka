@@ -38,6 +38,8 @@ signal character_set_changed(index: int)
 @export var preserve_texture_index_on_set_switch: bool = true
 
 var _textures: Array[Texture2D] = []
+## 按角色目录缓存的贴图，避免切换角色时同步加载造成卡顿。
+var _texture_cache: Dictionary = {}
 var _overlay: Sprite3D
 var _current_texture: Texture2D
 var _transition_tween: Tween
@@ -59,6 +61,7 @@ func _ready() -> void:
 		billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
 	if not character_directories.is_empty():
 		_texture_directory = character_directories[0]
+	_preload_character_textures()
 	_load_textures()
 	_create_overlay()
 	_apply_character_offset(0, 0.0)
@@ -143,26 +146,45 @@ func switch_random_texture() -> void:
 	_perform_random_switch()
 
 
+## 预加载所有角色目录，避免旋转切换角色时同步读盘和加载贴图。
+func _preload_character_textures() -> void:
+	for directory in character_directories:
+		if _texture_cache.has(directory):
+			continue
+		_texture_cache[directory] = _scan_texture_directory(directory)
+
+
 ## 扫描当前角色目录下的所有 png，并缓存为候选贴图。
 ## 若目录不可用，则退回到当前 Sprite3D 的 texture。
 func _load_textures() -> void:
-	_textures.clear()
-	var directory := DirAccess.open(_texture_directory)
-	if directory == null:
-		push_warning("C1: 无法打开角色立绘目录: %s" % _texture_directory)
-		if _current_texture != null:
-			_textures.append(_current_texture)
+	if _texture_cache.has(_texture_directory):
+		_textures = _texture_cache[_texture_directory].duplicate()
 		return
+	_textures = _scan_texture_directory(_texture_directory)
+	_texture_cache[_texture_directory] = _textures.duplicate()
+
+
+## 扫描指定目录中的 png 贴图。
+## [param directory_path] 角色立绘目录路径。
+func _scan_texture_directory(directory_path: String) -> Array[Texture2D]:
+	var result: Array[Texture2D] = []
+	var directory := DirAccess.open(directory_path)
+	if directory == null:
+		push_warning("C1: 无法打开角色立绘目录: %s" % directory_path)
+		if _current_texture != null:
+			result.append(_current_texture)
+		return result
 	var files := directory.get_files()
 	files.sort()
 	for file in files:
 		if file.get_extension().to_lower() != "png":
 			continue
-		var loaded := load(_texture_directory.path_join(file)) as Texture2D
+		var loaded := load(directory_path.path_join(file)) as Texture2D
 		if loaded != null:
-			_textures.append(loaded)
-	if _textures.is_empty() and _current_texture != null:
-		_textures.append(_current_texture)
+			result.append(loaded)
+	if result.is_empty() and _current_texture != null:
+		result.append(_current_texture)
+	return result
 
 
 ## 创建用于淡入新贴图的上层 Sprite3D，并复制当前 Sprite3D 的显示参数。
