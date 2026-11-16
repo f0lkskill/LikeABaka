@@ -137,7 +137,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)
 transform = Transform3D(1.4, 0, 0, 0, 1.4, 0, 0, 0, 1.4, 0, 28.602869, 0)
 texture = ExtResource("1_fpb3j")
 script = ExtResource("2_hetxm")
-lyric_ring_path = NodePath("../../stage/CollisionShape3D/LyricRing")
 
 [node name="BGM" type="AudioStreamPlayer" parent="." unique_id=933197175]
 stream = ExtResource("3_bgm")

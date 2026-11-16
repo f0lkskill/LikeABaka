@@ -5,14 +5,12 @@ signal character_set_changed(index: int)
 
 ## 角色立绘随机切换控制器。
 ##
-## 每次新歌词出现后，从导出的立绘目录中随机选择一张不同的 png。
+## 不自动监听歌词；由 Event 节点或 AnimationPlayer 显式调用
+## [method switch_random_texture] / [method switch_character_set] 来编排演出。
 ## 同一角色内的表情切换使用残留淡入；整套角色切换则先淡出再换图，
 ## 避免两个不同角色同时出现在舞台上。
-## 外部选项系统也可以直接调用 [method switch_random_texture]。
 ## 若与摄像机共用 [code]BGM_Analyzer[/code] 总线，不会影响音频播放。
 
-## 歌词环节点路径，用于监听新歌词出现事件。
-@export var lyric_ring_path: NodePath = ^"../../LyricRing"
 ## 角色立绘目录集合；切换角色时按顺序循环，当前目录下的 png 作为随机候选。
 @export var character_directories: PackedStringArray = PackedStringArray([
 	"res://bin/asset/image/cha_1",
@@ -52,7 +50,7 @@ var _base_scale: Vector3
 var _offset_tween: Tween
 
 
-## 初始化候选贴图、残留上层节点，并连接歌词信号。
+## 初始化候选贴图与残留上层节点；不自动监听歌词。
 func _ready() -> void:
 	_current_texture = texture
 	_base_position = position
@@ -64,9 +62,6 @@ func _ready() -> void:
 	_load_textures()
 	_create_overlay()
 	_apply_character_offset(0, 0.0)
-	var lyric_ring := get_node_or_null(lyric_ring_path)
-	if lyric_ring != null and lyric_ring.has_signal("line_spawned"):
-		lyric_ring.line_spawned.connect(_on_line_spawned)
 
 
 ## 返回当前角色立绘集合索引。
@@ -111,19 +106,6 @@ func switch_character_set() -> void:
 
 ## 由外部选项系统调用，经过随机短延迟后触发一次随机切换。
 func switch_random_texture() -> void:
-	_switch_token += 1
-	var token := _switch_token
-	await get_tree().create_timer(randf_range(min_switch_delay, max_switch_delay)).timeout
-	if token != _switch_token:
-		return
-	_perform_random_switch()
-
-
-## 收到新歌词后，经过随机短延迟触发一次立绘切换。
-## [param _index] 歌词在时间轴中的索引，本脚本不使用。
-## [param _time] 歌词时间戳，单位为秒，本脚本不使用。
-## [param _text] 歌词文本，本脚本不使用。
-func _on_line_spawned(_index: int, _time: float, _text: String) -> void:
 	_switch_token += 1
 	var token := _switch_token
 	await get_tree().create_timer(randf_range(min_switch_delay, max_switch_delay)).timeout

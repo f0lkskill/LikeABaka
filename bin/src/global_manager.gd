@@ -41,10 +41,7 @@ signal lyrics_finished
 		_bind_performance()
 ## 摄像机追随舞台旋转的速度；越小滞后越明显。
 @export_range(0.5, 20.0, 0.1) var camera_follow_speed: float = 1.8
-## 每隔多少句歌词自动触发一次舞台旋转。
-@export_range(1, 16, 1) var rotate_every_lines: int = 3
-## 是否自动按歌词句数触发旋转。
-@export var auto_rotate_with_lyrics: bool = true
+## 歌词只负责显示；旋转由 Event 节点或 AnimationPlayer 手动调用。
 ## 舞台旋转 180 度所需时间。
 @export_range(0.1, 5.0, 0.05) var rotate_duration: float = 1.2
 ## 舞台律动条节点路径；角色切换时会同步主题色。
@@ -88,8 +85,6 @@ signal lyrics_finished
 	set(value):
 		image_event_path = value
 		_bind_performance()
-## 每隔多少句歌词触发一次飞入素材事件，1 表示每句都触发。
-@export_range(1, 16, 1) var image_event_every_lines: int = 1
 
 ## 当前绑定的歌词环模板。
 var _lyric_ring: LyricRing
@@ -123,11 +118,7 @@ var _camera_follow_angle: float = 0.0
 var _camera_target_angle: float = 0.0
 ## 摄像机是否仍在追平舞台。
 var _camera_following: bool = false
-## 已收到的歌词句数。
-var _line_count: int = 0
-## 飞入素材事件的歌词计数。
-var _image_event_line_count: int = 0
-## 飞入素材事件节点。
+## 飞入素材事件节点；剪影事件会同步它的颜色状态。
 var _image_event: Node
 ## 当前舞台地面网格。
 var _stage_mesh: MeshInstance3D
@@ -218,14 +209,53 @@ func set_lyrics(entries: Array) -> void:
 ## 延迟追随舞台角度，并在舞台停下后继续追平，角色立绘保持原位。
 ## 旋转使用 Inverted Check 曲线，结束后复位旋转状态。
 func rotate_stage_and_switch_character() -> void:
+	_start_stage_rotation(true)
+
+
+## 只旋转舞台和摄像机，不切换角色；供 Event 节点或 AnimationPlayer 编排。
+func rotate_stage() -> void:
+	_start_stage_rotation(false)
+
+
+## 手动切换角色集合；不自动关联歌词。
+func switch_character_set() -> void:
+	_bind_performance()
+	if _character != null and _character.has_method("switch_character_set"):
+		_character.call("switch_character_set")
+
+
+## 手动触发当前角色的一次随机立绘切换。
+func switch_random_texture() -> void:
+	_bind_performance()
+	if _character != null and _character.has_method("switch_random_texture"):
+		_character.call("switch_random_texture")
+
+
+## 手动设置 BadApple 剪影状态；供 Event/AnimationPlayer 调用。
+## [param active] true 进入剪影，false 退出剪影。
+func set_silhouette_effect(active: bool) -> void:
+	_set_silhouette(active)
+
+
+## 手动触发一次背景素材飞入；自动触发仍由 ImageFlyEvent 自己管理。
+func trigger_image_fly() -> void:
+	if _image_event != null and _image_event.has_method("trigger_event"):
+		_image_event.call("trigger_event")
+
+
+## 启动舞台旋转。
+## [param switch_character] 是否在旋转开始时切换角色集合。
+func _start_stage_rotation(switch_character: bool) -> void:
 	if Engine.is_editor_hint() or _rotating:
 		return
 	_bind_performance()
 	if _stage == null:
 		return
 	_rotating = true
-	if _character != null and _character.has_method("switch_character_set"):
-		_character.switch_character_set()
+	if switch_character \
+			and _character != null \
+			and _character.has_method("switch_character_set"):
+		_character.call("switch_character_set")
 	_stage_start_transform = _stage.global_transform
 	_camera_rig_start_transform = (
 		_camera_rig.global_transform if _camera_rig != null else Transform3D()
@@ -702,28 +732,10 @@ func _on_bgm_finished() -> void:
 	get_tree().quit()
 
 
-## 转发歌词开始信号，并按配置触发舞台旋转与飞入素材事件。
+## 只转发歌词开始信号，不再自动触发任何演出事件。
+## 角色切换、旋转和背景素材飞入由 Event 节点或 AnimationPlayer 编排。
 func _on_line_spawned(index: int, time: float, text: String) -> void:
 	lyric_line_started.emit(index, time, text)
-	_line_count += 1
-	# 按歌词句数触发舞台旋转和角色集合切换。
-	if auto_rotate_with_lyrics and rotate_every_lines > 0:
-		if _line_count % rotate_every_lines == 0:
-			rotate_stage_and_switch_character()
-	# 飞入素材事件使用独立计数，默认每句歌词触发一次。
-	_image_event_line_count += 1
-	if image_event_every_lines > 0:
-		if _image_event_line_count % image_event_every_lines == 0:
-			_trigger_image_event()
-
-
-## 触发一次背景素材飞入事件。
-func _trigger_image_event() -> void:
-	if _image_event == null:
-		return
-	if not _image_event.has_method("trigger_event"):
-		return
-	_image_event.call("trigger_event")
 
 
 ## 转发歌词销毁信号。

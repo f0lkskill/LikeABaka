@@ -14,6 +14,14 @@ extends Node3D
 ## 面板整体缩放倍率。
 @export_range(0.1, 5.0, 0.01) var card_scale: float = 1.0
 
+@export_group("Auto Trigger")
+## 是否不依赖歌词自动触发飞入素材。
+@export var auto_trigger_enabled: bool = true
+## 自动触发的最短间隔。
+@export_range(0.5, 30.0, 0.1) var auto_trigger_min_interval: float = 3.0
+## 自动触发的最长间隔。
+@export_range(0.5, 30.0, 0.1) var auto_trigger_max_interval: float = 6.0
+
 @export_group("Curved Panel")
 ## 弧形面板的圆柱半径；略小于背景圆柱，贴在内侧表面。
 @export var panel_radius: float = 49.0
@@ -67,11 +75,41 @@ var _active_cards: Array[MeshInstance3D] = []
 var _texture_bag: Array[int] = []
 ## 当前剪影目标，0 为原色，1 为纯剪影色。
 var _silhouette_target: float = 0.0
+## 自动触发的计时器。
+var _auto_timer: Timer
 
 
-## 载入素材目录中的所有 png。
+## 载入素材目录并启动独立于歌词的自动触发。
 func _ready() -> void:
 	_load_images()
+	if auto_trigger_enabled:
+		_start_auto_trigger()
+
+
+## 创建自动触发计时器。
+func _start_auto_trigger() -> void:
+	_auto_timer = Timer.new()
+	_auto_timer.one_shot = true
+	_auto_timer.timeout.connect(_on_auto_trigger_timeout)
+	add_child(_auto_timer)
+	_schedule_next_auto_trigger()
+
+
+## 安排下一次自动触发，并保证最短/最长间隔合法。
+func _schedule_next_auto_trigger() -> void:
+	if _auto_timer == null:
+		return
+	var min_interval := minf(auto_trigger_min_interval, auto_trigger_max_interval)
+	var max_interval := maxf(auto_trigger_min_interval, auto_trigger_max_interval)
+	_auto_timer.wait_time = randf_range(min_interval, max_interval)
+	_auto_timer.start()
+
+
+## 自动触发一次素材飞入，然后继续安排下一次。
+func _on_auto_trigger_timeout() -> void:
+	if auto_trigger_enabled:
+		trigger_event()
+		_schedule_next_auto_trigger()
 
 
 ## 触发一次飞入事件，生成一张随机素材的独立弧形面板。
