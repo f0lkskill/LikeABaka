@@ -54,10 +54,10 @@ tracks/0/path = NodePath("stage/StageBackdrop:scroll_speed")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0, 20),
-"transitions": PackedFloat32Array(2, 2),
+"times": PackedFloat32Array(),
+"transitions": PackedFloat32Array(),
 "update": 0,
-"values": [0.025, 0.5]
+"values": []
 }
 
 [sub_resource type="Animation" id="Animation_tcfgv"]
@@ -70,10 +70,115 @@ tracks/0/path = NodePath("stage/StageBackdrop:scroll_speed")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0, 4.0299478),
-"transitions": PackedFloat32Array(2, 1),
+"times": PackedFloat32Array(),
+"transitions": PackedFloat32Array(),
 "update": 0,
-"values": [0.025, 0.2]
+"values": []
+}
+tracks/1/type = "method"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 10, 12.833333, 13.5, 16.066668, 18, 29.733334, 30.266666, 41.8, 42.4, 51, 72.03333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"values": [{
+"args": [true],
+"method": &"set_silhouette_effect"
+}, {
+"args": [false],
+"method": &"set_silhouette_effect"
+}, {
+"args": [true],
+"method": &"set_silhouette_effect"
+}, {
+"args": [false],
+"method": &"set_silhouette_effect"
+}, {
+"args": [true],
+"method": &"set_silhouette_effect"
+}, {
+"args": [false],
+"method": &"set_silhouette_effect"
+}, {
+"args": [true],
+"method": &"set_silhouette_effect"
+}, {
+"args": [false],
+"method": &"set_silhouette_effect"
+}, {
+"args": [true],
+"method": &"set_silhouette_effect"
+}, {
+"args": [false],
+"method": &"set_silhouette_effect"
+}, {
+"args": [true],
+"method": &"set_silhouette_effect"
+}, {
+"args": [false],
+"method": &"set_silhouette_effect"
+}]
+}
+tracks/2/type = "method"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath(".")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(4, 9, 13.166667, 17.1, 30, 42.1, 51, 60, 70),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
+"values": [{
+"args": [""],
+"method": &"rotate_stage_and_switch_character"
+}, {
+"args": [""],
+"method": &"rotate_stage_and_switch_character"
+}, {
+"args": ["1.png"],
+"method": &"rotate_stage_and_switch_character"
+}, {
+"args": [""],
+"method": &"rotate_stage_and_switch_character"
+}, {
+"args": [""],
+"method": &"rotate_stage_and_switch_character"
+}, {
+"args": [""],
+"method": &"rotate_stage_and_switch_character"
+}, {
+"args": [""],
+"method": &"rotate_stage_and_switch_character"
+}, {
+"args": [""],
+"method": &"rotate_stage_and_switch_character"
+}, {
+"args": [""],
+"method": &"rotate_stage_and_switch_character"
+}]
+}
+tracks/3/type = "method"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath(".")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(9.6, 11.833333, 14.5),
+"transitions": PackedFloat32Array(1, 1, 1),
+"values": [{
+"args": ["1.png"],
+"method": &"set_character_texture"
+}, {
+"args": ["2.png"],
+"method": &"set_character_texture"
+}, {
+"args": ["2.png"],
+"method": &"set_character_texture"
+}]
 }
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_8krki"]
@@ -87,9 +192,9 @@ script = ExtResource("4_text")
 lyric_ring_path = NodePath("stage/CollisionShape3D/LyricRing")
 camera_follow_speed = 1.0
 character_theme_colors = PackedColorArray(1, 0.4, 0.68, 1, 0.62, 0.04, 0.1, 1)
+auto_silhouette_events = false
 silhouette_ranges = PackedVector2Array(0, 10, 51, 71.04)
 silhouette_bar_color = Color(0, 0, 0, 1)
-silhouette_transition_duration = 0.45
 
 [node name="stage" type="StaticBody3D" parent="." unique_id=1970860928]
 physics_material_override = SubResource("PhysicsMaterial_glnxa")
@@ -114,13 +219,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -4.5677795, 0)
 mesh = SubResource("CylinderMesh_glnxa")
 
 [node name="LyricRing" type="Node3D" parent="stage/CollisionShape3D" unique_id=738443222]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.0010117292, 12.423784)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.0010117292, 15.17893)
 script = ExtResource("5_lyric")
 stage_mesh_path = NodePath("../MeshInstance3D")
-text_depth = 1.0
-text_depth_layers = 3
-double_sided = true
-radius_padding = -1.0
+font_size = 250
+text_depth = 2.0
+text_depth_layers = 6
+radius_padding = -3.0
 
 [node name="StageRhythmBars" type="Node3D" parent="stage/CollisionShape3D" unique_id=1231290947]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, 7.1425304)
@@ -128,21 +233,25 @@ script = ExtResource("7_bars")
 stage_mesh_path = NodePath("../MeshInstance3D")
 bgm_path = NodePath("../../../BGM")
 arc_degrees = 260.0
-bar_count = 46
-bar_width = 1.6
+bar_count = 50
+bar_width = 2.7
 base_height_offset = 0.5
-max_height = 50.0
+max_height = 80.0
 bar_color = Color(1, 0.572181, 0.7506007, 1)
+top_alpha = 0.0
 
 [node name="Node3D" type="Node3D" parent="stage" unique_id=747132078]
 
 [node name="Camera3D" type="Camera3D" parent="stage/Node3D" unique_id=345927553]
-transform = Transform3D(1, 0, 0, 0, 0.99762666, 0.068855666, 0, -0.068855666, 0.9976266, 0, 35.99599, 38.158012)
+transform = Transform3D(1, 0, 0, 0, 0.99762666, 0.068855666, 0, -0.068855666, 0.9976266, 0, 35.99599, 37.968544)
 script = ExtResource("6_camera")
 bgm_path = NodePath("../../../BGM")
 lookahead_seconds = 1.6
 zoom_strength_deg = 120.0
 segment_transition_duration = 1.0
+sway_distance = 2.5
+sway_vertical_distance = 1.0
+sway_degrees = 1.0
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=81278775]
 environment = SubResource("Environment_env")

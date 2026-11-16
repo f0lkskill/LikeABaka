@@ -32,9 +32,9 @@ extends Node3D
 
 @export_group("Motion")
 ## 从屏幕上方/下方开始移动的偏移量。
-@export var spawn_offset: float = 50.0
+@export var spawn_offset: float = 80
 ## 飞出时额外增加的离场距离。
-@export var exit_extra_offset: float = 40.0
+@export var exit_extra_offset: float = 50.0
 ## 缓入到摄像机平视位置的时间。
 @export_range(0.05, 5.0, 0.05) var fly_in_duration: float = 1.1
 ## 在平视位置停留的时间。
@@ -49,13 +49,13 @@ extends Node3D
 ## 选择角度时最多尝试的次数。
 @export_range(1, 32, 1) var placement_attempts: int = 12
 ## 停留高度相对摄像机平视高度的随机偏差。
-@export_range(0.0, 30.0, 0.1) var vertical_target_spread: float = 4.0
+@export_range(0.0, 30.0, 0.1) var vertical_target_spread: float = 14.0
 ## 贴合圆柱后再允许的轻微偏航倾斜。
 @export_range(0.0, 20.0, 0.5) var yaw_tilt_degrees: float = 5.0
 ## 轻微俯仰倾斜。
-@export_range(0.0, 20.0, 0.5) var pitch_tilt_degrees: float = 4.0
+@export_range(0.0, 20.0, 0.5) var pitch_tilt_degrees: float = 10.0
 ## 轻微滚转倾斜。
-@export_range(0.0, 20.0, 0.5) var roll_tilt_degrees: float = 4.0
+@export_range(0.0, 20.0, 0.5) var roll_tilt_degrees: float = 10.0
 ## 同时存在的最大面板数量；超出时移除最早的一张。
 @export_range(1, 8, 1) var max_active_cards: int = 4
 
