@@ -32,7 +32,7 @@ extends Node3D
 
 @export_group("Motion")
 ## 从屏幕上方/下方开始移动的偏移量。
-@export var spawn_offset: float = 30.0
+@export var spawn_offset: float = 50.0
 ## 飞出时额外增加的离场距离。
 @export var exit_extra_offset: float = 40.0
 ## 缓入到摄像机平视位置的时间。
