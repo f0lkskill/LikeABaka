@@ -162,12 +162,14 @@ func _ready() -> void:
 	_bind_bgm()
 	_bind_performance()
 	_bind_event()
-	# 只在尚未播放时启动，避免每次 ready 都把播放位置重置到开头。
-	if _event != null and not _event.is_playing():
-		_event.play("main")
-	# BGM 没有开启场景 autoplay，因此这里只负责首次启动，不重复强制播放。
+	# 先启动 BGM，再让 Event 的 main 与 BGM 从同一时间开始。
 	if _bgm != null and not _bgm.playing:
 		_bgm.play()
+	if _event != null and not _event.is_playing():
+		_event.play("main")
+		# 如果 BGM 已经提前开始，动画直接对齐 BGM 当前播放位置。
+		if _bgm != null and _bgm.playing:
+			_event.seek(_bgm.get_playback_position(), true)
 
 
 ## 从指定时间开始播放歌词。
