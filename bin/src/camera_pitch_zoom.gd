@@ -9,7 +9,7 @@ const BANDS := [60.0, 120.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0]
 const SEGMENT_ACCENTS := [1.0, -1.0, 0.5, -0.6, 0.8, -0.8]
 
 @export var bgm_path: NodePath = ^"../../BGM"
-@export_range(0.0, 90.0, 0.5) var zoom_strength_deg: float = 60.0
+@export_range(0.0, 120.0, 0.5) var zoom_strength_deg: float = 75.0
 @export_range(0.2, 8.0, 0.1) var segment_duration: float = 1.0
 @export_range(0.0, 2.0, 0.05) var segment_transition_duration: float = 0.6
 @export_enum("Smoothstep", "Inverted Check", "Sine") var transition_curve: int = 1
