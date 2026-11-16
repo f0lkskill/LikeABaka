@@ -6,25 +6,52 @@ extends MeshInstance3D
 
 @export_group("Pattern")
 ## 横向与纵向的黑白块数量。
-@export var block_count: Vector2 = Vector2(64.0, 48.0)
+@export var block_count: Vector2 = Vector2(64.0, 48.0):
+	set(value):
+		block_count = value
+		_apply_to_shader()
 ## 横向卷轴滚动速度，单位为 UV/秒。
-@export var scroll_speed: float = 0.025
+@export var scroll_speed: float = 0.025:
+	set(value):
+		scroll_speed = value
+		_apply_to_shader()
 ## 纵向卷轴滚动速度，单位为 UV/秒。
-@export var scroll_speed_y: float = 0.0
+@export var scroll_speed_y: float = 0.0:
+	set(value):
+		scroll_speed_y = value
+		_apply_to_shader()
 ## 白块颜色。
-@export var white_color: Color = Color.WHITE
+@export var white_color: Color = Color.WHITE:
+	set(value):
+		white_color = value
+		_apply_to_shader()
 ## 初始黑块主题色。
 @export var base_theme_color: Color = Color(1.0, 0.4, 0.68, 1.0)
 ## 背景整体亮度；过暗会失去黑白块氛围。
-@export_range(0.0, 1.0, 0.01) var brightness: float = 0.85
+@export_range(0.0, 1.0, 0.01) var brightness: float = 0.85:
+	set(value):
+		brightness = value
+		_apply_to_shader()
 ## 背景底部相对顶部的额外变暗比例。
-@export_range(0.0, 1.0, 0.01) var bottom_darkness: float = 0.15
+@export_range(0.0, 1.0, 0.01) var bottom_darkness: float = 0.15:
+	set(value):
+		bottom_darkness = value
+		_apply_to_shader()
 ## 律动条高度附近压暗带中心，沿圆柱高度 0 到 1。
-@export_range(0.0, 1.0, 0.01) var bar_band_center: float = 0.45
+@export_range(0.0, 1.0, 0.01) var bar_band_center: float = 0.45:
+	set(value):
+		bar_band_center = value
+		_apply_to_shader()
 ## 律动条压暗带宽度。
-@export_range(0.0, 0.5, 0.01) var bar_band_width: float = 0.22
+@export_range(0.0, 0.5, 0.01) var bar_band_width: float = 0.22:
+	set(value):
+		bar_band_width = value
+		_apply_to_shader()
 ## 律动条压暗带强度；只压暗条后方，避免整面背景过黑。
-@export_range(0.0, 1.0, 0.01) var bar_band_darkness: float = 0.55
+@export_range(0.0, 1.0, 0.01) var bar_band_darkness: float = 0.55:
+	set(value):
+		bar_band_darkness = value
+		_apply_to_shader()
 
 @export_group("Background")
 ## 普通状态随机背景素材目录。
@@ -36,9 +63,15 @@ extends MeshInstance3D
 
 @export_group("Theme Split")
 ## 半圆分界线在圆周上的偏移，0 到 1。
-@export_range(0.0, 1.0, 0.01) var split_angle: float = 0.0
+@export_range(0.0, 1.0, 0.01) var split_angle: float = 0.0:
+	set(value):
+		split_angle = value
+		_apply_to_shader()
 ## 分界线两侧颜色的柔化宽度。
-@export_range(0.0, 0.25, 0.001) var split_softness: float = 0.18
+@export_range(0.0, 0.25, 0.001) var split_softness: float = 0.18:
+	set(value):
+		split_softness = value
+		_apply_to_shader()
 
 ## 圆柱背景材质。
 var _material: ShaderMaterial
