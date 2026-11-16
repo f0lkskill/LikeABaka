@@ -66,6 +66,23 @@ signal lyrics_finished
 @export_range(0.0, 2.0, 0.05) var theme_transition_duration: float = 0.45
 ## 背景圆柱对半分裂再合并的过渡时长。
 @export_range(0.0, 3.0, 0.05) var backdrop_transition_duration: float = 0.9
+## 是否启用剪影事件。
+@export var silhouette_enabled: bool = true
+## 剪影时间区间，x 为开始秒数，y 为结束秒数。
+@export var silhouette_ranges: PackedVector2Array = PackedVector2Array([
+	Vector2(0.0, 10.0),
+	Vector2(47.15, 71.04),
+])
+## 剪影中人物使用的颜色。
+@export var silhouette_character_color: Color = Color.WHITE
+## 剪影中舞台使用的颜色。
+@export var silhouette_stage_color: Color = Color.BLACK
+## 剪影中背景黑白块使用的颜色。
+@export var silhouette_backdrop_color: Color = Color.BLACK
+## 剪影中律动条使用的颜色。
+@export var silhouette_bar_color: Color = Color.WHITE
+## 进入和退出剪影时所有元素的渐变时长。
+@export_range(0.0, 2.0, 0.05) var silhouette_transition_duration: float = 0.45
 
 ## 当前绑定的歌词环模板。
 var _lyric_ring: LyricRing
@@ -101,6 +118,30 @@ var _camera_target_angle: float = 0.0
 var _camera_following: bool = false
 ## 已收到的歌词句数。
 var _line_count: int = 0
+## 当前舞台地面网格。
+var _stage_mesh: MeshInstance3D
+## 角色残留上层节点。
+var _character_overlay: Node
+## 是否处于剪影事件中。
+var _silhouette_active: bool = false
+## 剪影材质是否已经覆盖到场景节点上。
+var _silhouette_visuals_applied: bool = false
+## 剪影混合程度，0 为正常，1 为纯剪影。
+var _silhouette_mix: float = 0.0
+## 剪影进入/退出 Tween。
+var _silhouette_tween: Tween
+## 舞台原本的颜色。
+var _silhouette_stage_base_color: Color = Color.WHITE
+## 剪影人物材质。
+var _silhouette_character_material: ShaderMaterial
+## 剪影角色残留上层材质。
+var _silhouette_overlay_material: ShaderMaterial
+## 剪影舞台材质。
+var _silhouette_stage_material: StandardMaterial3D
+## 剪影前的节点材质，用于退出时恢复。
+var _character_material_backup: Material
+var _overlay_material_backup: Material
+var _stage_material_backup: Material
 
 
 ## 初始化并绑定歌词环模板。
@@ -239,6 +280,16 @@ func _bind_performance() -> void:
 	_camera_rig = get_node_or_null(camera_rig_path) as Node3D
 	_rhythm_bars = get_node_or_null(rhythm_bars_path)
 	_backdrop = get_node_or_null(backdrop_path)
+	_stage_mesh = (
+		_stage.get_node_or_null("CollisionShape3D/MeshInstance3D") as MeshInstance3D
+		if _stage != null
+		else null
+	)
+	_character_overlay = (
+		_character.get_node_or_null("C1ResidualOverlay")
+		if _character != null
+		else null
+	)
 	if _character != null and _character.has_signal("character_set_changed"):
 		if not _character.is_connected("character_set_changed", _on_character_set_changed):
 			_character.connect("character_set_changed", _on_character_set_changed)
@@ -272,7 +323,12 @@ func _set_stage_rotation(progress: float, total_angle: float) -> void:
 ## 每帧让摄像机延迟追随舞台角度；舞台停止后仍会继续追平。
 ## [param delta] 本帧时间，用于计算平滑权重。
 func _process(delta: float) -> void:
-	if Engine.is_editor_hint() or not _camera_following or _camera_rig == null:
+	if Engine.is_editor_hint():
+		return
+	_update_silhouette_event()
+	if _silhouette_visuals_applied:
+		_sync_silhouette_textures()
+	if not _camera_following or _camera_rig == null:
 		return
 	var weight := 1.0 - exp(-camera_follow_speed * delta)
 	_camera_follow_angle = lerpf(_camera_follow_angle, _camera_target_angle, weight)
@@ -291,6 +347,226 @@ func _process(delta: float) -> void:
 		_camera_following = false
 
 
+## 根据播放时间切换黑白剪影事件。
+func _update_silhouette_event() -> void:
+	if not silhouette_enabled:
+		if _silhouette_active:
+			_set_silhouette(false)
+		return
+	var time := _get_performance_time()
+	var active := false
+	for time_range in silhouette_ranges:
+		if time >= time_range.x and time < time_range.y:
+			active = true
+			break
+	if active != _silhouette_active:
+		_set_silhouette(active)
+
+
+## 返回当前表演时间，优先使用歌词环内部的稳定时钟。
+func _get_performance_time() -> float:
+	if _lyric_ring != null:
+		return _lyric_ring.get_playback_time()
+	if _bgm != null:
+		return _bgm.get_playback_position()
+	return 0.0
+
+
+## 设置或退出剪影事件，所有元素都使用渐变过渡。
+## [param active] 是否启用剪影。
+func _set_silhouette(active: bool) -> void:
+	if active == _silhouette_active:
+		return
+	_silhouette_active = active
+	if active:
+		_enter_silhouette()
+	else:
+		_exit_silhouette()
+
+
+## 进入剪影：先应用材质，再把人物、舞台、背景和律动条渐变到黑白。
+func _enter_silhouette() -> void:
+	_ensure_silhouette_visuals()
+	_tween_silhouette_mix(1.0, _silhouette_stage_base_color, silhouette_stage_color)
+	_fade_bars_to(silhouette_bar_color, silhouette_transition_duration)
+	if _backdrop != null and _backdrop.has_method("fade_theme"):
+		_backdrop.call(
+			"fade_theme",
+			silhouette_backdrop_color,
+			silhouette_transition_duration
+		)
+
+
+## 退出剪影：所有颜色渐变回角色主题色，结束后撤销材质覆盖。
+func _exit_silhouette() -> void:
+	if not _silhouette_visuals_applied:
+		_apply_character_theme(_active_theme_index, 0.0)
+		return
+	var theme_color := silhouette_backdrop_color
+	if not character_theme_colors.is_empty():
+		theme_color = character_theme_colors[
+			_active_theme_index % character_theme_colors.size()
+		]
+	_tween_silhouette_mix(0.0, silhouette_stage_color, _silhouette_stage_base_color)
+	_fade_bars_to(theme_color, silhouette_transition_duration)
+	if _backdrop != null and _backdrop.has_method("fade_theme"):
+		_backdrop.call("fade_theme", theme_color, silhouette_transition_duration)
+	if silhouette_transition_duration <= 0.0:
+		_finish_exit_silhouette()
+	elif _silhouette_tween != null and _silhouette_tween.is_valid():
+		_silhouette_tween.chain().tween_callback(_finish_exit_silhouette)
+
+
+## 应用材质覆盖并记录原始材质。
+func _ensure_silhouette_visuals() -> void:
+	if _silhouette_visuals_applied:
+		return
+	if _silhouette_character_material == null:
+		_build_silhouette_materials()
+	if _character is GeometryInstance3D:
+		var character_node := _character as GeometryInstance3D
+		_character_material_backup = character_node.material_override
+		character_node.material_override = _silhouette_character_material
+	if _character_overlay is GeometryInstance3D:
+		var overlay_node := _character_overlay as GeometryInstance3D
+		_overlay_material_backup = overlay_node.material_override
+		overlay_node.material_override = _silhouette_overlay_material
+	if _stage_mesh != null:
+		_stage_material_backup = _stage_mesh.material_override
+		var base_material := _stage_mesh.get_active_material(0) as StandardMaterial3D
+		if base_material != null:
+			_silhouette_stage_base_color = base_material.albedo_color
+		_stage_mesh.material_override = _silhouette_stage_material
+		_silhouette_stage_material.albedo_color = _silhouette_stage_base_color
+	_silhouette_mix = 0.0
+	_set_silhouette_mix(0.0)
+	_silhouette_visuals_applied = true
+	_sync_silhouette_textures()
+
+
+## 渐入/渐出人物与舞台剪影强度。
+func _tween_silhouette_mix(target: float, stage_from: Color, stage_to: Color) -> void:
+	if _silhouette_tween != null and _silhouette_tween.is_valid():
+		_silhouette_tween.kill()
+	if silhouette_transition_duration <= 0.0:
+		_set_silhouette_mix(target)
+		_silhouette_stage_material.albedo_color = stage_to
+		return
+	_silhouette_stage_material.albedo_color = stage_from
+	_silhouette_tween = create_tween().set_parallel(true)
+	_silhouette_tween.tween_method(
+		_set_silhouette_mix,
+		_silhouette_mix,
+		target,
+		silhouette_transition_duration
+	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_silhouette_tween.tween_property(
+		_silhouette_stage_material,
+		"albedo_color",
+		stage_to,
+		silhouette_transition_duration
+	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+## 设置人物剪影的混合程度。
+func _set_silhouette_mix(value: float) -> void:
+	_silhouette_mix = value
+	if _silhouette_character_material != null:
+		_silhouette_character_material.set_shader_parameter(
+			"silhouette_mix",
+			value
+		)
+	if _silhouette_overlay_material != null:
+		_silhouette_overlay_material.set_shader_parameter(
+			"silhouette_mix",
+			value
+		)
+
+
+## 同步基础立绘和残留上层使用的贴图。
+func _sync_silhouette_textures() -> void:
+	if _character is Sprite3D and _silhouette_character_material != null:
+		_silhouette_character_material.set_shader_parameter(
+			"silhouette_texture",
+			(_character as Sprite3D).texture
+		)
+	if _character_overlay is Sprite3D and _silhouette_overlay_material != null:
+		_silhouette_overlay_material.set_shader_parameter(
+			"silhouette_texture",
+			(_character_overlay as Sprite3D).texture
+		)
+
+
+## 退出渐变结束后撤销剪影材质并恢复主题。
+func _finish_exit_silhouette() -> void:
+	if _character is GeometryInstance3D:
+		(_character as GeometryInstance3D).material_override = _character_material_backup
+	if _character_overlay is GeometryInstance3D:
+		(_character_overlay as GeometryInstance3D).material_override = (
+			_overlay_material_backup
+		)
+	if _stage_mesh != null:
+		_stage_mesh.material_override = _stage_material_backup
+	_silhouette_mix = 0.0
+	_silhouette_visuals_applied = false
+	_apply_character_theme(_active_theme_index, 0.0)
+
+
+## 渐变律动条颜色。
+func _fade_bars_to(color: Color, duration: float) -> void:
+	if _rhythm_bars == null:
+		return
+	if _theme_tween != null and _theme_tween.is_valid():
+		_theme_tween.kill()
+	if duration <= 0.0:
+		_rhythm_bars.set("bar_color", color)
+		return
+	_theme_tween = create_tween()
+	_theme_tween.tween_property(_rhythm_bars, "bar_color", color, duration) \
+		.set_trans(Tween.TRANS_SINE) \
+		.set_ease(Tween.EASE_IN_OUT)
+
+
+## 只刷新剪影状态下的律动条与背景颜色。
+func _apply_silhouette_colors() -> void:
+	_fade_bars_to(silhouette_bar_color, 0.0)
+	if _backdrop != null and _backdrop.has_method("fade_theme"):
+		_backdrop.call("fade_theme", silhouette_backdrop_color, 0.0)
+
+
+## 创建剪影人物与舞台材质。
+func _build_silhouette_materials() -> void:
+	var shader := Shader.new()
+	shader.code = """
+shader_type spatial;
+render_mode unshaded, cull_disabled, blend_mix;
+uniform sampler2D silhouette_texture : source_color, filter_linear;
+uniform vec4 silhouette_color : source_color = vec4(1.0);
+uniform float silhouette_mix : hint_range(0.0, 1.0) = 1.0;
+
+void fragment() {
+	vec4 tex = texture(silhouette_texture, UV);
+	ALBEDO = mix(tex.rgb, silhouette_color.rgb, silhouette_mix);
+	ALPHA = tex.a * mix(1.0, silhouette_color.a, silhouette_mix);
+}
+"""
+	_silhouette_character_material = ShaderMaterial.new()
+	_silhouette_character_material.shader = shader
+	_silhouette_character_material.set_shader_parameter(
+		"silhouette_color",
+		silhouette_character_color
+	)
+	_silhouette_overlay_material = ShaderMaterial.new()
+	_silhouette_overlay_material.shader = shader
+	_silhouette_overlay_material.set_shader_parameter(
+		"silhouette_color",
+		silhouette_character_color
+	)
+	_silhouette_stage_material = StandardMaterial3D.new()
+	_silhouette_stage_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_silhouette_stage_material.albedo_color = silhouette_stage_color
+
+
 ## 角色集合变化时，平滑更新律动条主题色。
 ## [param index] 当前角色集合索引。
 func _on_character_set_changed(index: int) -> void:
@@ -301,7 +577,15 @@ func _on_character_set_changed(index: int) -> void:
 ## [param index] 当前角色集合索引。
 ## [param duration] 颜色过渡时长；小于等于 0 时立即应用。
 func _apply_character_theme(index: int, duration: float) -> void:
-	if Engine.is_editor_hint() or character_theme_colors.is_empty():
+	if Engine.is_editor_hint():
+		return
+	if character_theme_colors.is_empty():
+		_active_theme_index = index
+		return
+	if _silhouette_visuals_applied:
+		_active_theme_index = index
+		if _silhouette_active:
+			_apply_silhouette_colors()
 		return
 	var color := character_theme_colors[index % character_theme_colors.size()]
 	var old_color := character_theme_colors[

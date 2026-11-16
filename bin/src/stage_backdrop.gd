@@ -56,6 +56,27 @@ func set_theme(color: Color) -> void:
 	_apply_to_shader()
 
 
+## 所有区域一起渐变到目标主题色，不执行对半分裂。
+## [param color] 目标黑块颜色。
+## [param duration] 过渡时长；小于等于 0 时立即应用。
+func fade_theme(color: Color, duration: float) -> void:
+	if duration <= 0.0:
+		set_theme(color)
+		return
+	if _theme_tween != null and _theme_tween.is_valid():
+		_theme_tween.kill()
+	_theme_tween = create_tween().set_parallel(true)
+	_theme_tween.tween_method(_set_color_a, _color_a, color, duration) \
+		.set_trans(Tween.TRANS_SINE) \
+		.set_ease(Tween.EASE_IN_OUT)
+	_theme_tween.tween_method(_set_color_b, _color_b, color, duration) \
+		.set_trans(Tween.TRANS_SINE) \
+		.set_ease(Tween.EASE_IN_OUT)
+	_theme_tween.tween_method(_set_split_amount, _split_amount, 0.0, duration) \
+		.set_trans(Tween.TRANS_SINE) \
+		.set_ease(Tween.EASE_IN_OUT)
+
+
 ## 从旧主题过渡到新主题。
 ## 先让圆柱分成两半，再让旧的一半追上新颜色。
 ## [param old_color] 旧主题色。
@@ -137,6 +158,12 @@ func _set_split_amount(value: float) -> void:
 ## 设置 A 侧主题色。
 func _set_color_a(value: Color) -> void:
 	_color_a = value
+	_apply_to_shader()
+
+
+## 设置 B 侧主题色。
+func _set_color_b(value: Color) -> void:
+	_color_b = value
 	_apply_to_shader()
 
 

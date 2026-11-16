@@ -48,6 +48,12 @@ reflected_light_source = 2
 script = ExtResource("4_text")
 lyric_ring_path = NodePath("stage/CollisionShape3D/LyricRing")
 character_theme_colors = PackedColorArray(1, 0.4, 0.68, 1, 0.62, 0.04, 0.1, 1)
+silhouette_enabled = null
+silhouette_character_color = null
+silhouette_stage_color = null
+silhouette_backdrop_color = null
+silhouette_bar_color = null
+silhouette_transition_duration = null
 
 [node name="stage" type="StaticBody3D" parent="." unique_id=1970860928]
 physics_material_override = SubResource("PhysicsMaterial_glnxa")
@@ -83,18 +89,19 @@ stage_mesh_path = NodePath("../MeshInstance3D")
 bgm_path = NodePath("../../../BGM")
 arc_degrees = 260.0
 bar_count = 46
+bar_width = 1.6
 base_height_offset = 0.5
-max_height = 40.0
+max_height = 50.0
 bar_color = Color(1, 0.572181, 0.7506007, 1)
 
 [node name="Node3D" type="Node3D" parent="stage" unique_id=747132078]
 
 [node name="Camera3D" type="Camera3D" parent="stage/Node3D" unique_id=345927553]
-transform = Transform3D(1, 0, 0, 0, 0.99762666, 0.068855666, 0, -0.068855666, 0.9976266, 0, 35.99599, 38.361073)
+transform = Transform3D(1, 0, 0, 0, 0.99762666, 0.068855666, 0, -0.068855666, 0.9976266, 0, 35.99599, 38.158012)
 script = ExtResource("6_camera")
 bgm_path = NodePath("../../../BGM")
+lookahead_seconds = 1.6
 zoom_strength_deg = 120.0
-segment_duration = 0.30000000000000004
 segment_transition_duration = 1.0
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=81278775]
