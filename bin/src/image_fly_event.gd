@@ -34,7 +34,8 @@ extends Node3D
 ## 继续飞走的时间。
 @export_range(0.05, 5.0, 0.05) var fly_out_duration: float = 1.1
 ## 在圆柱可见面上随机选择角度的范围，单位为度。
-@export_range(0.0, 120.0, 0.5) var visible_angle_spread_degrees: float = 46.0
+## 180 度表示覆盖面对摄像机的整个半圆。
+@export_range(0.0, 180.0, 0.5) var visible_angle_spread_degrees: float = 180.0
 ## 贴合圆柱后再允许的轻微偏航倾斜。
 @export_range(0.0, 20.0, 0.5) var yaw_tilt_degrees: float = 5.0
 ## 轻微俯仰倾斜。

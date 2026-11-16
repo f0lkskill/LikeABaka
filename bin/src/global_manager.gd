@@ -438,6 +438,7 @@ func _exit_silhouette() -> void:
 
 ## 应用材质覆盖并记录原始材质。
 func _ensure_silhouette_visuals() -> void:
+	# 飞入素材使用独立材质，不参与这里的黑白剪影覆盖。
 	if _silhouette_visuals_applied:
 		return
 	if _silhouette_character_material == null:
