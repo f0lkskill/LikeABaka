@@ -44,8 +44,14 @@ const SEGMENT_ACCENTS := [1.0, -1.0, 0.5, -0.6, 0.8, -0.8]
 @export_group("Camera Sway")
 ## 是否启用摄像机左右呼吸摇晃。
 @export var sway_enabled: bool = true
-## 最大左右偏航角度，建议保持很小。
-@export_range(0.0, 5.0, 0.01) var sway_degrees: float = 0.6
+## 左右平移距离，在摄像机竖直平面内移动。
+@export_range(0.0, 5.0, 0.01) var sway_distance: float = 0.8
+## 竖直方向的小幅起伏，与左右运动组成很小的莫比乌斯式循环。
+@export_range(0.0, 2.0, 0.01) var sway_vertical_distance: float = 0.25
+## 可选的极小滚转，增加环路的扭转感。
+@export_range(0.0, 3.0, 0.01) var sway_roll_degrees: float = 0.12
+## 可选的小幅偏航角度；0 表示只做平移摇头。
+@export_range(0.0, 5.0, 0.01) var sway_degrees: float = 0.0
 ## 主呼吸周期，单位为秒。
 @export_range(0.5, 30.0, 0.1) var sway_period: float = 8.0
 ## 次级波形强度，让运动不完全机械。
@@ -83,6 +89,8 @@ var _fov_to: float = 75.0
 var _transition_elapsed: float = 0.0
 ## 摄像机初始旋转，摇晃在此基础上叠加。
 var _base_rotation: Vector3
+## 摄像机初始本地位置。
+var _base_position: Vector3
 ## 呼吸摇晃累计时间。
 var _sway_time: float = 0.0
 
@@ -93,29 +101,39 @@ func _ready() -> void:
 	_fov_from = fov
 	_fov_to = fov
 	_base_rotation = rotation
+	_base_position = position
 	_bgm = get_node_or_null(bgm_path) as AudioStreamPlayer
 	_setup_analyzer_bus()
 	_setup_lookahead()
 
 
-## 叠加轻微、非机械的摄像机左右呼吸摇摆。
+## 叠加轻微、非机械的摄像机呼吸摇摆。
+## 左右为主，叠加很小的高度起伏和滚转，形成微型莫比乌斯式回路。
 ## [param delta] 本帧时间，单位为秒。
 func _update_sway(delta: float) -> void:
 	if not sway_enabled:
+		position = _base_position
 		rotation = _base_rotation
 		return
 	_sway_time += delta
 	var period := maxf(sway_period, 0.001)
 	var phase := _sway_time * TAU / period
 	# 主波 + 次级波 + 很慢的漂移，避免完全周期性的机械感。
-	var wave := sin(phase)
-	wave += sin(phase * 1.618 + 1.1) * sway_secondary_strength
-	wave += sin(phase * 0.37 + 0.5) * 0.15
-	var yaw := deg_to_rad(sway_degrees) * wave / (1.0 + sway_secondary_strength + 0.15)
+	var horizontal := sin(phase)
+	horizontal += sin(phase * 1.618 + 1.1) * sway_secondary_strength
+	horizontal += sin(phase * 0.37 + 0.5) * 0.15
+	horizontal /= (1.0 + sway_secondary_strength + 0.15)
+	var vertical := sin(phase * 2.0 + 0.9)
+	var roll := sin(phase * 1.618 + 0.7)
+	position = _base_position + Vector3(
+		sway_distance * horizontal,
+		sway_vertical_distance * vertical,
+		0.0
+	)
 	rotation = Vector3(
 		_base_rotation.x,
-		_base_rotation.y + yaw,
-		_base_rotation.z
+		_base_rotation.y + deg_to_rad(sway_degrees) * horizontal,
+		_base_rotation.z + deg_to_rad(sway_roll_degrees) * roll
 	)
 
 
