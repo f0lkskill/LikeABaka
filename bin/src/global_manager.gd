@@ -85,6 +85,8 @@ signal lyrics_finished
 	set(value):
 		image_event_path = value
 		_bind_performance()
+## 每隔多少句歌词触发一次背景素材飞入，1 表示每句都触发。
+@export_range(1, 16, 1) var image_event_every_lines: int = 1
 
 ## 当前绑定的歌词环模板。
 var _lyric_ring: LyricRing
@@ -120,6 +122,8 @@ var _camera_target_angle: float = 0.0
 var _camera_following: bool = false
 ## 飞入素材事件节点；剪影事件会同步它的颜色状态。
 var _image_event: Node
+## 飞入素材事件的歌词计数。
+var _image_event_line_count: int = 0
 ## 当前舞台地面网格。
 var _stage_mesh: MeshInstance3D
 ## 角色残留上层节点。
@@ -732,10 +736,14 @@ func _on_bgm_finished() -> void:
 	get_tree().quit()
 
 
-## 只转发歌词开始信号，不再自动触发任何演出事件。
-## 角色切换、旋转和背景素材飞入由 Event 节点或 AnimationPlayer 编排。
+## 转发歌词开始信号，只保留背景素材飞入这一项自动事件。
+## 舞台旋转、角色切换和立绘随机变化仍由 Event 节点或 AnimationPlayer 编排。
 func _on_line_spawned(index: int, time: float, text: String) -> void:
 	lyric_line_started.emit(index, time, text)
+	_image_event_line_count += 1
+	if image_event_every_lines > 0:
+		if _image_event_line_count % image_event_every_lines == 0:
+			trigger_image_fly()
 
 
 ## 转发歌词销毁信号。

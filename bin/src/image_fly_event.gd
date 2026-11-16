@@ -15,8 +15,8 @@ extends Node3D
 @export_range(0.1, 5.0, 0.01) var card_scale: float = 1.0
 
 @export_group("Auto Trigger")
-## 是否不依赖歌词自动触发飞入素材。
-@export var auto_trigger_enabled: bool = true
+## 是否使用独立计时器自动触发；默认由歌词事件触发，避免一次歌词飞出两张。
+@export var auto_trigger_enabled: bool = false
 ## 自动触发的最短间隔。
 @export_range(0.5, 30.0, 0.1) var auto_trigger_min_interval: float = 3.0
 ## 自动触发的最长间隔。
