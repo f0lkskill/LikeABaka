@@ -69,9 +69,10 @@ func get_character_index() -> int:
 	return _character_index
 
 
-## 切换到下一套角色立绘，并优先选择同名贴图保持表情连续。
-## 切换后所有随机立绘都只从当前角色目录中选择。
-func switch_character_set() -> void:
+## 切换到下一套角色立绘。
+## [param target_texture_name] 可选的目标文件名，例如 "sad.png"；
+## 留空时优先用同名贴图，其次保持索引，最后回退到 normal。
+func switch_character_set(target_texture_name: String = "") -> void:
 	if character_directories.size() <= 1:
 		return
 	var previous_name := ""
@@ -84,9 +85,16 @@ func switch_character_set() -> void:
 	if _textures.is_empty():
 		return
 	var next_texture: Texture2D
+	# 优先使用调用方明确指定的贴图文件名。
+	if not target_texture_name.is_empty():
+		for candidate in _textures:
+			if candidate.resource_path.get_file() == target_texture_name:
+				next_texture = candidate
+				break
 	for candidate in _textures:
 		if candidate.resource_path.get_file() == previous_name:
-			next_texture = candidate
+			if next_texture == null:
+				next_texture = candidate
 			break
 	if next_texture == null \
 			and preserve_texture_index_on_set_switch \
@@ -102,6 +110,27 @@ func switch_character_set() -> void:
 		next_texture = _textures[0]
 	_start_character_set_transition(next_texture, character_set_transition_duration)
 	character_set_changed.emit(_character_index)
+
+
+## 在当前角色目录内切换到指定的贴图文件名。
+## [param texture_file_name] 文件名，例如 "sad.png"。
+## [param duration] 可选过渡时长；小于 0 时使用普通随机切换时长。
+func set_character_texture(texture_file_name: String, duration: float = -1.0) -> void:
+	if texture_file_name.is_empty():
+		return
+	var next_texture: Texture2D
+	for candidate in _textures:
+		if candidate.resource_path.get_file() == texture_file_name:
+			next_texture = candidate
+			break
+	if next_texture == null:
+		var path := _texture_directory.path_join(texture_file_name)
+		if ResourceLoader.exists(path):
+			next_texture = load(path) as Texture2D
+	if next_texture == null:
+		push_warning("C1: 找不到立绘文件: %s" % texture_file_name)
+		return
+	_start_residual_transition(next_texture, duration)
 
 
 ## 由外部选项系统调用，经过随机短延迟后触发一次随机切换。

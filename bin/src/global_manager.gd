@@ -226,8 +226,8 @@ func set_lyrics(entries: Array) -> void:
 ## 摄像机作为舞台子节点会一起旋转，但会通过 [member camera_follow_speed]
 ## 延迟追随舞台角度，并在舞台停下后继续追平，角色立绘保持原位。
 ## 旋转使用 Inverted Check 曲线，结束后复位旋转状态。
-func rotate_stage_and_switch_character() -> void:
-	_start_stage_rotation(true)
+func rotate_stage_and_switch_character(texture_file_name: String = "") -> void:
+	_start_stage_rotation(true, texture_file_name)
 
 
 ## 只旋转舞台和摄像机，不切换角色；供 Event 节点或 AnimationPlayer 编排。
@@ -236,10 +236,19 @@ func rotate_stage() -> void:
 
 
 ## 手动切换角色集合；不自动关联歌词。
-func switch_character_set() -> void:
+## [param texture_file_name] 可选目标贴图文件名，例如 "sad.png"。
+func switch_character_set(texture_file_name: String = "") -> void:
 	_bind_performance()
 	if _character != null and _character.has_method("switch_character_set"):
-		_character.call("switch_character_set")
+		_character.call("switch_character_set", texture_file_name)
+
+
+## 在当前角色集合内切换到指定贴图文件名。
+## [param texture_file_name] 文件名，例如 "sad.png"。
+func set_character_texture(texture_file_name: String) -> void:
+	_bind_performance()
+	if _character != null and _character.has_method("set_character_texture"):
+		_character.call("set_character_texture", texture_file_name)
 
 
 ## 手动触发当前角色的一次随机立绘切换。
@@ -263,7 +272,11 @@ func trigger_image_fly() -> void:
 
 ## 启动舞台旋转。
 ## [param switch_character] 是否在旋转开始时切换角色集合。
-func _start_stage_rotation(switch_character: bool) -> void:
+## [param texture_file_name] 可选的新角色贴图文件名。
+func _start_stage_rotation(
+	switch_character: bool,
+	texture_file_name: String = ""
+) -> void:
 	if Engine.is_editor_hint() or _rotating:
 		return
 	_bind_performance()
@@ -273,7 +286,7 @@ func _start_stage_rotation(switch_character: bool) -> void:
 	if switch_character \
 			and _character != null \
 			and _character.has_method("switch_character_set"):
-		_character.call("switch_character_set")
+		_character.call("switch_character_set", texture_file_name)
 	_stage_start_transform = _stage.global_transform
 	_camera_rig_start_transform = (
 		_camera_rig.global_transform if _camera_rig != null else Transform3D()
