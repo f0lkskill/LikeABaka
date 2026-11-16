@@ -1,14 +1,22 @@
 extends Sprite3D
 
-## 每次新歌词出现后随机切换角色立绘。
-## 旧立绘保持不透明作为残留底图，新立绘在上层淡入，舞台上不会出现空角色。
-## 也可以由外部选项系统直接调用 switch_random_texture()。
+## 角色立绘随机切换控制器。
+##
+## 每次新歌词出现后，从导出的立绘目录中随机选择一张不同的 png。
+## 旧立绘始终保持不透明作为残留底图，新立绘只在它的上层淡入，
+## 因此过渡期间舞台上不会出现没有角色的空帧。
+## 外部选项系统也可以直接调用 [method switch_random_texture]。
+## 若与摄像机共用 [code]BGM_Analyzer[/code] 总线，不会影响音频播放。
 
+## 歌词环节点路径，用于监听新歌词出现事件。
 @export var lyric_ring_path: NodePath = ^"../../LyricRing"
 ## 角色立绘目录；目录下的 png 会全部作为候选。
 @export_dir var texture_directory: String = "res://bin/asset/image/cha_1"
+## 新歌词出现后到开始切换立绘的最短随机延迟。
 @export_range(0.0, 1.0, 0.01) var min_switch_delay: float = 0.05
+## 新歌词出现后到开始切换立绘的最长随机延迟。
 @export_range(0.0, 2.0, 0.01) var max_switch_delay: float = 0.2
+## 新立绘在旧立绘上淡入的时长。
 @export_range(0.05, 1.0, 0.01) var transition_duration: float = 0.18
 
 var _textures: Array[Texture2D] = []
@@ -19,6 +27,7 @@ var _switching: bool = false
 var _switch_token: int = 0
 
 
+## 初始化候选贴图、残留上层节点，并连接歌词信号。
 func _ready() -> void:
 	_current_texture = texture
 	_load_textures()
@@ -28,7 +37,7 @@ func _ready() -> void:
 		lyric_ring.line_spawned.connect(_on_line_spawned)
 
 
-## 由外部选项系统调用，立即排队一次随机切换。
+## 由外部选项系统调用，经过随机短延迟后触发一次随机切换。
 func switch_random_texture() -> void:
 	_switch_token += 1
 	var token := _switch_token
@@ -38,6 +47,10 @@ func switch_random_texture() -> void:
 	_perform_random_switch()
 
 
+## 收到新歌词后，经过随机短延迟触发一次立绘切换。
+## [param _index] 歌词在时间轴中的索引，本脚本不使用。
+## [param _time] 歌词时间戳，单位为秒，本脚本不使用。
+## [param _text] 歌词文本，本脚本不使用。
 func _on_line_spawned(_index: int, _time: float, _text: String) -> void:
 	_switch_token += 1
 	var token := _switch_token
@@ -47,6 +60,8 @@ func _on_line_spawned(_index: int, _time: float, _text: String) -> void:
 	_perform_random_switch()
 
 
+## 扫描 [member texture_directory] 下的所有 png，并缓存为候选贴图。
+## 若目录不可用，则退回到当前 Sprite3D 的 texture。
 func _load_textures() -> void:
 	var directory := DirAccess.open(texture_directory)
 	if directory == null:
@@ -66,6 +81,7 @@ func _load_textures() -> void:
 		_textures.append(_current_texture)
 
 
+## 创建用于淡入新贴图的上层 Sprite3D，并复制当前 Sprite3D 的显示参数。
 func _create_overlay() -> void:
 	_overlay = Sprite3D.new()
 	_overlay.name = "C1ResidualOverlay"
@@ -83,6 +99,8 @@ func _create_overlay() -> void:
 	add_child(_overlay)
 
 
+## 从候选贴图中随机选择一张与当前不同的贴图并开始过渡。
+## 正在过渡或候选不足时直接跳过。
 func _perform_random_switch() -> void:
 	if _switching or _textures.size() <= 1:
 		return
@@ -96,6 +114,8 @@ func _perform_random_switch() -> void:
 	_start_residual_transition(next_texture)
 
 
+## 开始一次残留式过渡：旧贴图留在底层，新贴图在上层淡入。
+## [param next_texture] 即将切换到的目标贴图。
 func _start_residual_transition(next_texture: Texture2D) -> void:
 	_switching = true
 	if _transition_tween != null and _transition_tween.is_valid():
@@ -110,6 +130,8 @@ func _start_residual_transition(next_texture: Texture2D) -> void:
 	_transition_tween.tween_callback(_finish_transition.bind(next_texture))
 
 
+## 过渡完成后把新贴图设为底层正式贴图，并隐藏上层。
+## [param next_texture] 已经完成淡入的目标贴图。
 func _finish_transition(next_texture: Texture2D) -> void:
 	texture = next_texture
 	_current_texture = next_texture

@@ -1,8 +1,12 @@
 extends Node3D
 
 ## 沿圆台舞台边缘生成一组分隔的 2D 竖条律动条。
-## 默认以面向摄像机的方向为中心，向左右展开成半圆。
+##
+## 竖条围绕一整圈舞台边缘排布，正面中心朝向摄像机，条面朝向圆心。
+## 高度由 BGM 频谱排名驱动：峰值条更高，普通条更低。
+## 颜色、数量、宽度、间隔和响应速度都可以通过导出属性调整。
 
+## 用于频谱分析的音频总线名称；与摄像机共用同一条总线。
 const ANALYZER_BUS := "BGM_Analyzer"
 
 @export_group("Layout")
@@ -12,7 +16,7 @@ const ANALYZER_BUS := "BGM_Analyzer"
 @export var bgm_path: NodePath = ^"../BGM"
 ## 正中心角度；0 度朝向摄像机。
 @export var center_angle_deg: float = 0.0
-## 展开角度，默认覆盖舞台前半圈。
+## 展开角度；360 度表示绕舞台一整圈。
 @export_range(1.0, 360.0, 1.0) var arc_degrees: float = 360.0
 ## 竖条数量。
 @export_range(1, 128, 1) var bar_count: int = 64
@@ -60,12 +64,15 @@ var _analyzer: AudioEffectSpectrumAnalyzerInstance
 var _bus_index: int = -1
 
 
+## 初始化舞台尺寸、音频分析总线和全部竖条节点。
 func _ready() -> void:
 	_resolve_stage()
 	_setup_analyzer_bus()
 	_build_bars()
 
 
+## 每帧采样 BGM 频谱，按排名计算每根竖条的目标高度并平滑过渡。
+## [param delta] 距上一帧的时间，单位为秒。
 func _process(delta: float) -> void:
 	if _bars.is_empty():
 		return
@@ -122,6 +129,7 @@ func _process(delta: float) -> void:
 		bar.position = _base_positions[i] + _up_axis * (_heights[i] * 0.5)
 
 
+## 从圆台网格读取半径、高度和朝向，并计算每根竖条的底部位置。
 func _resolve_stage() -> void:
 	_stage_mesh = get_node_or_null(stage_mesh_path) as MeshInstance3D
 	if _stage_mesh == null or not (_stage_mesh.mesh is CylinderMesh):
@@ -148,6 +156,8 @@ func _resolve_stage() -> void:
 		_angles.append(angle)
 
 
+## 为每根计算好的底部位置创建独立的 QuadMesh 竖条。
+## 竖条绕 Y 轴旋转到面向圆心，并共用同一份颜色材质。
 func _build_bars() -> void:
 	if _stage_mesh == null:
 		return
@@ -174,6 +184,7 @@ func _build_bars() -> void:
 		_heights.append(min_height)
 
 
+## 把当前 [member bar_color] 同步到共享材质和自发光颜色。
 func _apply_color() -> void:
 	if _material == null:
 		return
@@ -181,6 +192,7 @@ func _apply_color() -> void:
 	_material.emission = bar_color
 
 
+## 创建或复用 [constant ANALYZER_BUS]，并把 BGM 绑定到该总线。
 func _setup_analyzer_bus() -> void:
 	_bgm = get_node_or_null(bgm_path) as AudioStreamPlayer
 	var bus_index := AudioServer.get_bus_index(ANALYZER_BUS)
