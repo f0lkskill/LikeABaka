@@ -44,6 +44,12 @@ extends Node3D
 ## 在圆柱可见面上随机选择角度的范围，单位为度。
 ## 180 度表示覆盖面对摄像机的整个半圆。
 @export_range(0.0, 180.0, 0.5) var visible_angle_spread_degrees: float = 180.0
+## 尽量避开已有面板的最小角度间隔，单位为度。
+@export_range(0.0, 180.0, 0.5) var min_angular_separation_degrees: float = 52.0
+## 选择角度时最多尝试的次数。
+@export_range(1, 32, 1) var placement_attempts: int = 12
+## 停留高度相对摄像机平视高度的随机偏差。
+@export_range(0.0, 30.0, 0.1) var vertical_target_spread: float = 4.0
 ## 贴合圆柱后再允许的轻微偏航倾斜。
 @export_range(0.0, 20.0, 0.5) var yaw_tilt_degrees: float = 5.0
 ## 轻微俯仰倾斜。
@@ -128,15 +134,13 @@ func trigger_event() -> void:
 		return
 	# 摄像机位置转换到圆弧本地坐标，用来选择可见的圆柱表面。
 	var local_camera := to_local(camera.global_position)
-	var target_y := local_camera.y
-	var far_angle := atan2(-local_camera.x, -local_camera.z)
-	var angle_offset := deg_to_rad(
-		randf_range(
-			-visible_angle_spread_degrees * 0.5,
-			visible_angle_spread_degrees * 0.5
-		)
+	# 停留高度围绕摄像机平视高度做少量随机偏移，减少水平方向的重叠感。
+	var target_y := local_camera.y + randf_range(
+		-vertical_target_spread,
+		vertical_target_spread
 	)
-	var placement_angle := far_angle + angle_offset
+	var far_angle := atan2(-local_camera.x, -local_camera.z)
+	var placement_angle := _choose_placement_angle(far_angle)
 	var direction := 1.0 if randf() < 0.5 else -1.0
 	var start_y := target_y + direction * spawn_offset
 	# 每张面板都有独立材质，便于各自设置贴图和描边参数。
@@ -154,9 +158,44 @@ func trigger_event() -> void:
 			+ randf_range(-yaw_tilt_degrees, yaw_tilt_degrees),
 		randf_range(-roll_tilt_degrees, roll_tilt_degrees)
 	)
+	# 记录角度，后续面板会尽量避开这个位置。
+	card.set_meta("placement_angle", placement_angle)
 	add_child(card)
 	_active_cards.append(card)
 	_animate_card(card, start_y, target_y, direction)
+
+
+## 在可见角度范围内挑选一个尽量远离现有面板的位置。
+## [param far_angle] 摄像机正对的圆柱背面角度。
+func _choose_placement_angle(far_angle: float) -> float:
+	var half_spread := deg_to_rad(visible_angle_spread_degrees * 0.5)
+	var min_separation := deg_to_rad(min_angular_separation_degrees)
+	var best_angle := far_angle
+	var best_distance := -1.0
+	for _attempt in placement_attempts:
+		var candidate := far_angle + randf_range(-half_spread, half_spread)
+		var nearest_distance := INF
+		for card in _active_cards:
+			if not is_instance_valid(card):
+				continue
+			var other_angle := float(card.get_meta("placement_angle", far_angle))
+			nearest_distance = minf(
+				nearest_distance,
+				_angle_distance(candidate, other_angle)
+			)
+		if nearest_distance > best_distance:
+			best_distance = nearest_distance
+			best_angle = candidate
+		if nearest_distance >= min_separation:
+			break
+	return best_angle
+
+
+## 计算两个角度在圆周上的最短距离。
+## [param a] 第一个角度，单位为弧度。
+## [param b] 第二个角度，单位为弧度。
+func _angle_distance(a: float, b: float) -> float:
+	return absf(wrapf(a - b, -PI, PI))
 
 
 ## 切换飞入素材的剪影状态。
