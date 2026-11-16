@@ -1,18 +1,21 @@
 extends Camera3D
 
-## 按 BGM 分段采样音调与能量，在段边界直接切换 FOV。
-## 段内保持不变，形成更有张力的阶梯式镜头变化；不循环 BGM。
+## 按 BGM 分段采样音调与能量，在段边界用短暂缓动切换 FOV。
+## 段内保持不变，强调量按组持续数段，形成“大大大 / 小小小”的段落感。
+## 不循环 BGM。
 
 const ANALYZER_BUS := "BGM_Analyzer"
 const BANDS := [60.0, 120.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0]
-const SEGMENT_ACCENTS := [1.0, -0.8, 0.4, -1.0]
+const SEGMENT_ACCENTS := [1.0, -1.0, 0.5, -0.6, 0.8, -0.8]
 
 @export var bgm_path: NodePath = ^"../../BGM"
 @export_range(0.0, 90.0, 0.5) var zoom_strength_deg: float = 60.0
 @export_range(0.2, 8.0, 0.1) var segment_duration: float = 1.0
-@export_range(0.0, 2.0, 0.05) var segment_transition_duration: float = 0.35
+@export_range(0.0, 2.0, 0.05) var segment_transition_duration: float = 0.6
+@export_enum("Smoothstep", "Inverted Check", "Sine") var transition_curve: int = 1
 @export_range(0.0, 1.0, 0.05) var energy_weight: float = 0.15
 @export_range(0.0, 0.3, 0.01) var segment_accent: float = 0.12
+@export_range(1, 8, 1) var accent_group_size: int = 3
 @export var centroid_min_hz: float = 500.0
 @export var centroid_max_hz: float = 2000.0
 
@@ -72,7 +75,8 @@ func _apply_segment(average_centroid: float, average_peak: float) -> void:
 		1.0
 	)
 	var energy := clampf(average_peak, 0.0, 1.0)
-	var accent: float = float(SEGMENT_ACCENTS[_segment_count % SEGMENT_ACCENTS.size()]) * segment_accent
+	var accent_group := int(_segment_count / float(maxi(accent_group_size, 1)))
+	var accent: float = float(SEGMENT_ACCENTS[accent_group % SEGMENT_ACCENTS.size()]) * segment_accent
 	var value := clampf(
 		tone * (1.0 - energy_weight) + energy * energy_weight + accent,
 		0.0,
@@ -94,8 +98,19 @@ func _update_fov_transition(delta: float) -> void:
 		return
 	_transition_elapsed = minf(_transition_elapsed + delta, segment_transition_duration)
 	var t := _transition_elapsed / segment_transition_duration
-	var eased := t * t * (3.0 - 2.0 * t)
-	fov = lerpf(_fov_from, _fov_to, eased)
+	fov = lerpf(_fov_from, _fov_to, _ease_transition(t))
+
+
+## 可选的段间缓动曲线。
+## Inverted Check 前段靠近目标、尾段缓慢收束，适合更平缓的镜头变化。
+func _ease_transition(t: float) -> float:
+	match transition_curve:
+		1:
+			return 1.0 - pow(1.0 - t, 3.0)
+		2:
+			return 0.5 - 0.5 * cos(PI * t)
+		_:
+			return t * t * (3.0 - 2.0 * t)
 
 
 
