@@ -36,6 +36,8 @@ signal character_set_changed(index: int)
 @export var character_scales: PackedFloat32Array = PackedFloat32Array([1.0, 1.235])
 ## 立绘始终朝向摄像机，避免舞台旋转时看到纸片侧面。
 @export var face_camera: bool = true
+## 切换角色集合时若没有同名贴图，优先保持原贴图索引，避免总是回退到 normal。
+@export var preserve_texture_index_on_set_switch: bool = true
 
 var _textures: Array[Texture2D] = []
 var _overlay: Sprite3D
@@ -80,6 +82,7 @@ func switch_character_set() -> void:
 	var previous_name := ""
 	if _current_texture != null:
 		previous_name = _current_texture.resource_path.get_file()
+	var previous_texture_index := _textures.find(_current_texture)
 	_character_index = (_character_index + 1) % character_directories.size()
 	_texture_directory = character_directories[_character_index]
 	_load_textures()
@@ -90,6 +93,11 @@ func switch_character_set() -> void:
 		if candidate.resource_path.get_file() == previous_name:
 			next_texture = candidate
 			break
+	if next_texture == null \
+			and preserve_texture_index_on_set_switch \
+			and previous_texture_index >= 0 \
+			and previous_texture_index < _textures.size():
+		next_texture = _textures[previous_texture_index]
 	if next_texture == null:
 		for candidate in _textures:
 			if candidate.resource_path.get_file() == "normal.png":
@@ -156,8 +164,9 @@ func _create_overlay() -> void:
 	_overlay.billboard = billboard
 	_overlay.shaded = shaded
 	_overlay.double_sided = double_sided
-	# 上层贴图必须稳定盖在底图上，避免深度冲突导致淡入不可见。
+	# 上层贴图必须稳定盖在底图上，避免深度/透明排序导致淡入不可见。
 	_overlay.no_depth_test = true
+	_overlay.render_priority = 10
 	_overlay.fixed_size = fixed_size
 	_overlay.alpha_cut = alpha_cut
 	_overlay.modulate = Color(1, 1, 1, 0)
