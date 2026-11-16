@@ -175,8 +175,10 @@ uniform float top_alpha : hint_range(0.0, 1.0) = 0.05;
 
 void fragment() {
 	float fade = mix(top_alpha, 1.0, smoothstep(0.0, 1.0, UV.y));
-	ALBEDO = bar_color.rgb;
-	EMISSION = bar_color.rgb * 0.6;
+	float edge = smoothstep(0.38, 0.5, abs(UV.x - 0.5));
+	vec3 core = mix(bar_color.rgb, vec3(1.0), 0.2);
+	ALBEDO = mix(core, vec3(0.015), edge);
+	EMISSION = mix(bar_color.rgb * 2.2, vec3(0.0), edge);
 	ALPHA = bar_color.a * fade;
 }
 """

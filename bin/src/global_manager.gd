@@ -52,13 +52,20 @@ signal lyrics_finished
 	set(value):
 		rhythm_bars_path = value
 		_bind_performance()
-## 各角色对应的律动条主题色，索引与 character_directories 对齐。
+## 舞台背景圆柱路径；角色切换时同步主题色与对半过渡。
+@export var backdrop_path: NodePath = ^"stage/StageBackdrop":
+	set(value):
+		backdrop_path = value
+		_bind_performance()
+## 各角色对应的律动条与背景主题色，索引与 character_directories 对齐。
 @export var character_theme_colors: PackedColorArray = PackedColorArray([
 	Color(1.0, 0.4, 0.68, 1.0),
 	Color(0.62, 0.04, 0.10, 1.0),
 ])
 ## 律动条主题色过渡时长。
 @export_range(0.0, 2.0, 0.05) var theme_transition_duration: float = 0.45
+## 背景圆柱对半分裂再合并的过渡时长。
+@export_range(0.0, 3.0, 0.05) var backdrop_transition_duration: float = 0.9
 
 ## 当前绑定的歌词环模板。
 var _lyric_ring: LyricRing
@@ -72,6 +79,10 @@ var _character: Node
 var _camera_rig: Node3D
 ## 当前律动条节点。
 var _rhythm_bars: Node
+## 当前背景圆柱节点。
+var _backdrop: Node
+## 当前已应用的主题索引。
+var _active_theme_index: int = 0
 ## 律动条主题色过渡 Tween。
 var _theme_tween: Tween
 ## 旋转开始前的舞台全局变换。
@@ -227,6 +238,7 @@ func _bind_performance() -> void:
 	_character = get_node_or_null(character_path)
 	_camera_rig = get_node_or_null(camera_rig_path) as Node3D
 	_rhythm_bars = get_node_or_null(rhythm_bars_path)
+	_backdrop = get_node_or_null(backdrop_path)
 	if _character != null and _character.has_signal("character_set_changed"):
 		if not _character.is_connected("character_set_changed", _on_character_set_changed):
 			_character.connect("character_set_changed", _on_character_set_changed)
@@ -289,20 +301,33 @@ func _on_character_set_changed(index: int) -> void:
 ## [param index] 当前角色集合索引。
 ## [param duration] 颜色过渡时长；小于等于 0 时立即应用。
 func _apply_character_theme(index: int, duration: float) -> void:
-	if Engine.is_editor_hint() or _rhythm_bars == null:
-		return
-	if character_theme_colors.is_empty():
+	if Engine.is_editor_hint() or character_theme_colors.is_empty():
 		return
 	var color := character_theme_colors[index % character_theme_colors.size()]
+	var old_color := character_theme_colors[
+		_active_theme_index % character_theme_colors.size()
+	]
 	if _theme_tween != null and _theme_tween.is_valid():
 		_theme_tween.kill()
-	if duration <= 0.0:
-		_rhythm_bars.set("bar_color", color)
-		return
-	_theme_tween = create_tween()
-	_theme_tween.tween_property(_rhythm_bars, "bar_color", color, duration) \
-		.set_trans(Tween.TRANS_SINE) \
-		.set_ease(Tween.EASE_IN_OUT)
+	if _rhythm_bars != null:
+		if duration <= 0.0:
+			_rhythm_bars.set("bar_color", color)
+		else:
+			_theme_tween = create_tween()
+			_theme_tween.tween_property(_rhythm_bars, "bar_color", color, duration) \
+				.set_trans(Tween.TRANS_SINE) \
+				.set_ease(Tween.EASE_IN_OUT)
+	if _backdrop != null and _backdrop.has_method("transition_theme"):
+		if duration <= 0.0:
+			_backdrop.call("set_theme", color)
+		else:
+			_backdrop.call(
+				"transition_theme",
+				old_color,
+				color,
+				backdrop_transition_duration
+			)
+	_active_theme_index = index
 
 
 ## 返回角色当前世界坐标的 X/Z，作为舞台和摄像机的共同旋转轴心。
