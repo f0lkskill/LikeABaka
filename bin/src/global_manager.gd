@@ -274,16 +274,31 @@ func set_silhouette_effect(active: bool) -> void:
 ## [param offset_degrees] 偏移角度；正数扩大、负数缩小，单位为度。
 ## [param duration] 渐变时长；省略时默认 0.5 秒。
 func set_fov_offset(offset_degrees: float, duration: float = 0.5) -> void:
-	var camera := get_node_or_null(fov_camera_path)
-	# 兼容场景里 fov_camera_path 被清空或尚未绑定的情况。
-	if camera == null:
-		camera = get_node_or_null(^"stage/Node3D/Camera3D")
-	if camera == null and _camera_rig != null:
-		camera = _camera_rig.get_node_or_null("Camera3D")
+	var camera := _get_fov_camera()
 	if camera != null and camera.has_method("set_fov_offset"):
 		camera.call("set_fov_offset", offset_degrees, duration)
 	else:
 		push_warning("GlobalManager: 找不到可用的 FOV Camera3D")
+
+
+## 启用或禁用 BGM 自动 FOV 更新。
+## [param enabled] true 恢复自动更新，false 冻结当前基础 FOV。
+func set_fov_auto_update_enabled(enabled: bool) -> void:
+	var camera := _get_fov_camera()
+	if camera != null and camera.has_method("set_auto_fov_enabled"):
+		camera.call("set_auto_fov_enabled", enabled)
+	else:
+		push_warning("GlobalManager: 找不到可用的 FOV Camera3D")
+
+
+## 查找负责 FOV 的 Camera3D，兼容场景路径为空的情况。
+func _get_fov_camera() -> Node:
+	var camera := get_node_or_null(fov_camera_path)
+	if camera == null:
+		camera = get_node_or_null(^"stage/Node3D/Camera3D")
+	if camera == null and _camera_rig != null:
+		camera = _camera_rig.get_node_or_null("Camera3D")
+	return camera
 
 
 ## 手动触发一次背景素材飞入；自动触发仍由 ImageFlyEvent 自己管理。

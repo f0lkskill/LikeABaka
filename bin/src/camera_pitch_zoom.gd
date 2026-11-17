@@ -80,6 +80,16 @@ var _base_fov_current: float
 		_fov_offset = value
 		if is_node_ready():
 			_apply_fov_value()
+## 是否启用 BGM 自动 FOV 更新；关闭后保持当前基础 FOV。
+@export var auto_fov_enabled: bool = true:
+	set(value):
+		auto_fov_enabled = value
+		if value:
+			# 重新启用时从新的分段重新统计，避免立即跳变。
+			_segment_elapsed = 0.0
+			_centroid_sum = 0.0
+			_peak_max = 0.0
+			_sample_count = 0
 ## 当前实际使用的 FOV 偏移缓存。
 var _fov_offset: float = 0.0
 ## 自动 FOV 分段更新时是否清除外部偏移。
@@ -126,6 +136,12 @@ func _ready() -> void:
 	_bgm = get_node_or_null(bgm_path) as AudioStreamPlayer
 	_setup_analyzer_bus()
 	_setup_lookahead()
+
+
+## 启用或禁用 BGM 自动 FOV 更新。
+## [param enabled] true 恢复自动更新，false 冻结当前基础 FOV。
+func set_auto_fov_enabled(enabled: bool) -> void:
+	auto_fov_enabled = enabled
 
 
 ## 给 FOV 叠加一个可正可负、带渐变的外部偏移。
@@ -261,6 +277,8 @@ func _update_lookahead() -> void:
 ## [param average_centroid] 该段频谱重心的平均值，单位为赫兹。
 ## [param average_peak] 该段总线峰值的最大值，范围 0 到 1。
 func _apply_segment(average_centroid: float, average_peak: float) -> void:
+	if not auto_fov_enabled:
+		return
 	var tone := clampf(
 		inverse_lerp(centroid_min_hz, maxf(centroid_max_hz, centroid_min_hz + 1.0), average_centroid),
 		0.0,
@@ -289,6 +307,8 @@ func _apply_segment(average_centroid: float, average_peak: float) -> void:
 ## 推进段边界之间的 FOV 过渡。
 ## [param delta] 距上一帧的时间，单位为秒。
 func _update_fov_transition(delta: float) -> void:
+	if not auto_fov_enabled:
+		return
 	if segment_transition_duration <= 0.0:
 		_base_fov_current = _fov_to
 		return
