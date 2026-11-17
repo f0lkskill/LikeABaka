@@ -74,6 +74,13 @@ var _base_fov: float
 ## 当前不受外部偏移影响的基础 FOV。
 var _base_fov_current: float
 ## 外部事件叠加到 FOV 上的偏移角，单位为度。
+@export_range(-60.0, 60.0, 0.1) var fov_offset_degrees: float = 0.0:
+	set(value):
+		fov_offset_degrees = value
+		_fov_offset = value
+		if is_node_ready():
+			_apply_fov_value()
+## 当前实际使用的 FOV 偏移缓存。
 var _fov_offset: float = 0.0
 ## FOV 偏移的渐变 Tween。
 var _fov_offset_tween: Tween
@@ -135,8 +142,7 @@ func set_fov_offset(offset_degrees: float, duration: float = 0.5) -> void:
 ## 立即设置 FOV 偏移并刷新摄像机 FOV。
 ## [param value] 偏移角度，单位为度。
 func _set_fov_offset_value(value: float) -> void:
-	_fov_offset = value
-	_apply_fov_value()
+	fov_offset_degrees = value
 
 
 ## 把基础 FOV 与外部偏移合并后写回 Camera3D。
