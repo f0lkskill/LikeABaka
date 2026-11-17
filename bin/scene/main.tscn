@@ -1,6 +1,5 @@
 [gd_scene format=3 uid="uid://bixvewifxyira"]
 
-[ext_resource type="Texture2D" uid="uid://bo22qmevs6oyv" path="res://bin/asset/image/cha_1/normal.png" id="1_fpb3j"]
 [ext_resource type="Script" uid="uid://bhtw7h40nmn6i" path="res://bin/src/c_1.gd" id="2_hetxm"]
 [ext_resource type="AudioStream" uid="uid://63xcrsuxkrup" path="res://bin/asset/audio/bgm.wav" id="3_bgm"]
 [ext_resource type="Script" uid="uid://epwa3f2vxgpa" path="res://bin/src/global_manager.gd" id="4_text"]
@@ -9,8 +8,9 @@
 [ext_resource type="Script" uid="uid://bygpauh3xgdbo" path="res://bin/src/camera_pitch_zoom.gd" id="6_camera"]
 [ext_resource type="Script" uid="uid://on1mbif67j7l" path="res://bin/src/stage_rhythm_bars.gd" id="7_bars"]
 [ext_resource type="Script" uid="uid://ce8mnfc7d14a0" path="res://bin/src/stage_backdrop.gd" id="8_backdrop"]
+[ext_resource type="Texture2D" uid="uid://l7oplc81l7sp" path="res://bin/asset/image/cha_1/1.png" id="9_30hua"]
 [ext_resource type="Script" uid="uid://crdfdd0oy3jd" path="res://bin/src/image_fly_event.gd" id="9_fly"]
-[ext_resource type="Script" path="res://bin/src/sakura_petals.gd" id="10_sakura"]
+[ext_resource type="Script" uid="uid://b2qjieq4jw71k" path="res://bin/src/sakura_petals.gd" id="10_sakura"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_glnxa"]
 
@@ -282,6 +282,20 @@ tracks/4/keys = {
 "method": &"add_fov_offset"
 }]
 }
+tracks/5/type = "method"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath(".")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(34),
+"transitions": PackedFloat32Array(1),
+"values": [{
+"args": [true, 1.0],
+"method": &"set_sakura_enabled"
+}]
+}
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_8krki"]
 _data = {
@@ -379,7 +393,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)
 
 [node name="C1" type="Sprite3D" parent="charactor" unique_id=1486681781]
 transform = Transform3D(1.4, 0, 0, 0, 1.4, 0, 0, 0, 1.4, 0, 28.602869, 0)
-texture = ExtResource("1_fpb3j")
+texture = ExtResource("9_30hua")
 script = ExtResource("2_hetxm")
 
 [node name="BGM" type="AudioStreamPlayer" parent="." unique_id=933197175]

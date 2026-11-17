@@ -59,8 +59,13 @@ func _ready() -> void:
 	_base_scale = scale
 	if face_camera:
 		billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
-	if not character_directories.is_empty():
-		_texture_directory = character_directories[0]
+	# 防止场景里误清空目录数组后失去所有切换能力。
+	if character_directories.is_empty():
+		character_directories = PackedStringArray([
+			"res://bin/asset/image/cha_1",
+			"res://bin/asset/image/cha_2",
+		])
+	_texture_directory = character_directories[0]
 	_preload_character_textures()
 	_load_textures()
 	_create_overlay()
