@@ -46,11 +46,6 @@ sky = SubResource("Sky_env")
 ambient_light_source = 3
 reflected_light_source = 2
 glow_enabled = true
-glow_intensity = 0.35
-glow_strength = 1.0
-glow_bloom = 0.04
-glow_blend_mode = 1
-glow_hdr_threshold = 1.0
 glow_levels/1 = 1.0
 glow_levels/2 = 1.0
 glow_levels/3 = 1.0
@@ -58,6 +53,8 @@ glow_levels/4 = 1.0
 glow_levels/5 = 1.0
 glow_levels/6 = 1.0
 glow_levels/7 = 1.0
+glow_intensity = 0.35
+glow_bloom = 0.04
 
 [sub_resource type="Animation" id="Animation_fdifc"]
 length = 70.0
@@ -96,7 +93,7 @@ tracks/1/path = NodePath(".")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
-"times": PackedFloat32Array(0, 10, 12.9, 13.433333, 16.066668, 18, 29.733334, 30.266666, 41.8, 42.4, 51, 72.03333),
+"times": PackedFloat32Array(0, 10, 12.833333, 13.466666, 16.066668, 18, 29.733334, 30.266666, 41.8, 42.4, 51, 72.03333),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
 "values": [{
 "args": [true],
@@ -265,6 +262,10 @@ character_theme_colors = PackedColorArray(1, 0.4, 0.68, 1, 0.62, 0.04, 0.1, 1)
 auto_silhouette_events = false
 silhouette_ranges = PackedVector2Array(0, 10, 51, 71.04)
 silhouette_bar_color = Color(0, 0, 0, 1)
+world_environment_path = NodePath("")
+badapple_glow_intensity = 0.0
+badapple_glow_bloom = 0.0
+badapple_glow_threshold = 0.0
 
 [node name="stage" type="StaticBody3D" parent="." unique_id=1970860928]
 physics_material_override = SubResource("PhysicsMaterial_glnxa")

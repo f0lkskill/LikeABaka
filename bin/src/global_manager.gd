@@ -90,6 +90,14 @@ signal lyrics_finished
 @export var silhouette_bar_color: Color = Color.WHITE
 ## 进入和退出剪影时所有元素的渐变时长。
 @export_range(0.0, 2.0, 0.05) var silhouette_transition_duration: float = 0.45
+## BadApple 模式使用的 WorldEnvironment 路径。
+@export var world_environment_path: NodePath = ^"WorldEnvironment"
+## BadApple 全屏 Bloom 的目标强度。
+@export_range(0.0, 2.0, 0.01) var badapple_glow_intensity: float = 0.35
+## BadApple 全屏 Bloom 的目标泛光。
+@export_range(0.0, 1.0, 0.01) var badapple_glow_bloom: float = 0.04
+## BadApple 全屏 Bloom 的亮度阈值。
+@export_range(0.0, 3.0, 0.01) var badapple_glow_threshold: float = 1.0
 ## 飞入素材事件节点路径。
 @export var image_event_path: NodePath = ^"stage/ImageFlyEvent":
 	set(value):
@@ -150,6 +158,10 @@ var _silhouette_visuals_applied: bool = false
 var _silhouette_mix: float = 0.0
 ## 剪影进入/退出 Tween。
 var _silhouette_tween: Tween
+## 当前世界环境，用于 BadApple 专属 Bloom。
+var _environment: Environment
+## BadApple Bloom 的进入/退出 Tween。
+var _bloom_tween: Tween
 ## 舞台原本的颜色。
 var _silhouette_stage_base_color: Color = Color.WHITE
 ## 剪影人物材质。
@@ -408,6 +420,8 @@ func _bind_performance() -> void:
 	_rhythm_bars = get_node_or_null(rhythm_bars_path)
 	_backdrop = get_node_or_null(backdrop_path)
 	_image_event = get_node_or_null(image_event_path)
+	var world := get_node_or_null(world_environment_path) as WorldEnvironment
+	_environment = world.environment if world != null else null
 	_stage_mesh = (
 		_stage.get_node_or_null("CollisionShape3D/MeshInstance3D") as MeshInstance3D
 		if _stage != null
@@ -534,6 +548,7 @@ func _enter_silhouette() -> void:
 			true,
 			silhouette_transition_duration
 		)
+	_set_badapple_bloom(true, silhouette_transition_duration)
 
 
 ## 退出剪影：所有颜色渐变回角色主题色，结束后撤销材质覆盖。
@@ -559,10 +574,74 @@ func _exit_silhouette() -> void:
 			false,
 			silhouette_transition_duration
 		)
+	_set_badapple_bloom(false, silhouette_transition_duration)
 	if silhouette_transition_duration <= 0.0:
 		_finish_exit_silhouette()
 	elif _silhouette_tween != null and _silhouette_tween.is_valid():
 		_silhouette_tween.chain().tween_callback(_finish_exit_silhouette)
+
+
+## 只在 BadApple 模式中开启全屏 Bloom，并和其他剪影元素一起渐变。
+## [param active] true 进入 Bloom，false 退出。
+## [param duration] 渐变时长；小于等于 0 时立即切换。
+func _set_badapple_bloom(active: bool, duration: float) -> void:
+	if _environment == null:
+		return
+	if _bloom_tween != null and _bloom_tween.is_valid():
+		_bloom_tween.kill()
+	if active:
+		# 从关闭状态进入时从 0 开始，避免 Bloom 突然出现。
+		if not _environment.glow_enabled:
+			_environment.glow_intensity = 0.0
+			_environment.glow_bloom = 0.0
+		_environment.glow_enabled = true
+		_environment.glow_hdr_threshold = badapple_glow_threshold
+		if duration <= 0.0:
+			_environment.glow_intensity = badapple_glow_intensity
+			_environment.glow_bloom = badapple_glow_bloom
+			return
+		_bloom_tween = create_tween().set_parallel(true)
+		_bloom_tween.tween_property(
+			_environment,
+			"glow_intensity",
+			badapple_glow_intensity,
+			duration
+		).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		_bloom_tween.tween_property(
+			_environment,
+			"glow_bloom",
+			badapple_glow_bloom,
+			duration
+		).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		return
+	if not _environment.glow_enabled:
+		return
+	if duration <= 0.0:
+		_finish_badapple_bloom()
+		return
+	_bloom_tween = create_tween().set_parallel(true)
+	_bloom_tween.tween_property(
+		_environment,
+		"glow_intensity",
+		0.0,
+		duration
+	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_bloom_tween.tween_property(
+		_environment,
+		"glow_bloom",
+		0.0,
+		duration
+	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_bloom_tween.chain().tween_callback(_finish_badapple_bloom)
+
+
+## Bloom 渐出结束后彻底关闭 WorldEnvironment Glow。
+func _finish_badapple_bloom() -> void:
+	if _environment == null:
+		return
+	_environment.glow_intensity = 0.0
+	_environment.glow_bloom = 0.0
+	_environment.glow_enabled = false
 
 
 ## 应用材质覆盖并记录原始材质。
