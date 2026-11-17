@@ -86,8 +86,11 @@ var _fov_offset: float = 0.0
 @export var clear_fov_offset_on_segment_update: bool = true
 ## 清除外部偏移时的渐变时长。
 @export_range(0.0, 2.0, 0.05) var fov_offset_clear_duration: float = 0.2
-## FOV 偏移的渐变 Tween。
-var _fov_offset_tween: Tween
+## FOV 偏移渐变的起止值与时间进度。
+var _fov_offset_from: float = 0.0
+var _fov_offset_to: float = 0.0
+var _fov_offset_duration: float = 0.0
+var _fov_offset_elapsed: float = 0.0
 ## 当前分段已经过的时间。
 var _segment_elapsed: float = 0.0
 ## 已完成的分段数量，也用于强调分组。
@@ -129,18 +132,31 @@ func _ready() -> void:
 ## [param offset_degrees] 偏移角度；正数扩大 FOV，负数缩小 FOV，单位为度。
 ## [param duration] 渐变时长；小于等于 0 时立即应用。
 func set_fov_offset(offset_degrees: float, duration: float = 0.5) -> void:
-	if _fov_offset_tween != null and _fov_offset_tween.is_valid():
-		_fov_offset_tween.kill()
-	if duration <= 0.0:
+	_fov_offset_from = _fov_offset
+	_fov_offset_to = offset_degrees
+	_fov_offset_duration = maxf(duration, 0.0)
+	_fov_offset_elapsed = 0.0
+	if _fov_offset_duration <= 0.0:
 		_set_fov_offset_value(offset_degrees)
+
+
+## 按与自动 FOV 相同的缓动曲线推进外部偏移。
+## [param delta] 本帧时间，单位为秒。
+func _update_fov_offset(delta: float) -> void:
+	if _fov_offset_duration <= 0.0:
 		return
-	_fov_offset_tween = create_tween()
-	_fov_offset_tween.tween_method(
-		_set_fov_offset_value,
-		_fov_offset,
-		offset_degrees,
-		duration
-	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_fov_offset_elapsed = minf(
+		_fov_offset_elapsed + delta,
+		_fov_offset_duration
+	)
+	var t := _fov_offset_elapsed / _fov_offset_duration
+	_set_fov_offset_value(lerpf(
+		_fov_offset_from,
+		_fov_offset_to,
+		_ease_transition(t)
+	))
+	if _fov_offset_elapsed >= _fov_offset_duration:
+		_fov_offset_duration = 0.0
 
 
 ## 立即设置 FOV 偏移并刷新摄像机 FOV。
@@ -189,6 +205,7 @@ func _update_sway(delta: float) -> void:
 ## [param delta] 本帧时间，单位为秒。
 func _process(delta: float) -> void:
 	_update_sway(delta)
+	_update_fov_offset(delta)
 	_update_lookahead()
 	_update_fov_transition(delta)
 	_apply_fov_value()
