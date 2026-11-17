@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://bhtw7h40nmn6i" path="res://bin/src/c_1.gd" id="2_hetxm"]
 [ext_resource type="AudioStream" uid="uid://63xcrsuxkrup" path="res://bin/asset/audio/bgm.wav" id="3_bgm"]
 [ext_resource type="Script" uid="uid://epwa3f2vxgpa" path="res://bin/src/global_manager.gd" id="4_text"]
+[ext_resource type="FontFile" uid="uid://cl14abh1woteb" path="res://bin/asset/font/KeLaiYinLanDeYeWan-2.ttf" id="5_8krki"]
 [ext_resource type="Script" uid="uid://dv1odkhiw147i" path="res://bin/src/lyric_ring.gd" id="5_lyric"]
 [ext_resource type="Script" uid="uid://bygpauh3xgdbo" path="res://bin/src/camera_pitch_zoom.gd" id="6_camera"]
 [ext_resource type="Script" uid="uid://on1mbif67j7l" path="res://bin/src/stage_rhythm_bars.gd" id="7_bars"]
@@ -180,6 +181,23 @@ tracks/3/keys = {
 "method": &"set_character_texture"
 }]
 }
+tracks/4/type = "method"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath(".")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(2.0333328, 3.7333333),
+"transitions": PackedFloat32Array(1, 1),
+"values": [{
+"args": [100.0, 0.5],
+"method": &"set_fov_offset"
+}, {
+"args": [100.0, 0.5],
+"method": &"set_fov_offset"
+}]
+}
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_8krki"]
 _data = {
@@ -191,6 +209,7 @@ _data = {
 script = ExtResource("4_text")
 lyric_ring_path = NodePath("stage/CollisionShape3D/LyricRing")
 camera_follow_speed = 1.0
+fov_camera_path = NodePath("stage/Node3D/Camera3D")
 character_theme_colors = PackedColorArray(1, 0.4, 0.68, 1, 0.62, 0.04, 0.1, 1)
 auto_silhouette_events = false
 silhouette_ranges = PackedVector2Array(0, 10, 51, 71.04)
@@ -222,10 +241,10 @@ mesh = SubResource("CylinderMesh_glnxa")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.0010117292, 15.17893)
 script = ExtResource("5_lyric")
 stage_mesh_path = NodePath("../MeshInstance3D")
+font = ExtResource("5_8krki")
 font_size = 250
-text_depth = 2.0
-text_depth_layers = 6
-radius_padding = -3.0
+text_depth = 1.0
+radius_padding = -1.0
 
 [node name="StageRhythmBars" type="Node3D" parent="stage/CollisionShape3D" unique_id=1231290947]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, 7.1425304)

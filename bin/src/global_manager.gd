@@ -275,8 +275,15 @@ func set_silhouette_effect(active: bool) -> void:
 ## [param duration] 渐变时长；省略时默认 0.5 秒。
 func set_fov_offset(offset_degrees: float, duration: float = 0.5) -> void:
 	var camera := get_node_or_null(fov_camera_path)
+	# 兼容场景里 fov_camera_path 被清空或尚未绑定的情况。
+	if camera == null:
+		camera = get_node_or_null(^"stage/Node3D/Camera3D")
+	if camera == null and _camera_rig != null:
+		camera = _camera_rig.get_node_or_null("Camera3D")
 	if camera != null and camera.has_method("set_fov_offset"):
 		camera.call("set_fov_offset", offset_degrees, duration)
+	else:
+		push_warning("GlobalManager: 找不到可用的 FOV Camera3D")
 
 
 ## 手动触发一次背景素材飞入；自动触发仍由 ImageFlyEvent 自己管理。
