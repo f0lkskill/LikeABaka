@@ -45,6 +45,8 @@ signal lyrics_finished
 		_bind_performance()
 ## 摄像机追随舞台旋转的速度；越小滞后越明显。
 @export_range(0.5, 20.0, 0.1) var camera_follow_speed: float = 1.8
+## 用于叠加 FOV 偏移的 Camera3D 路径。
+@export var fov_camera_path: NodePath = ^"stage/Node3D/Camera3D"
 ## 歌词只负责显示；旋转由 Event 节点或 AnimationPlayer 手动调用。
 ## 舞台旋转 180 度所需时间。
 @export_range(0.1, 5.0, 0.05) var rotate_duration: float = 1.2
@@ -266,6 +268,15 @@ func switch_random_texture() -> void:
 ## [param active] true 进入剪影，false 退出剪影。
 func set_silhouette_effect(active: bool) -> void:
 	_set_silhouette(active)
+
+
+## 给摄像机 FOV 叠加带渐变的偏移。
+## [param offset_degrees] 偏移角度；正数扩大、负数缩小，单位为度。
+## [param duration] 渐变时长；省略时默认 0.5 秒。
+func set_fov_offset(offset_degrees: float, duration: float = 0.5) -> void:
+	var camera := get_node_or_null(fov_camera_path)
+	if camera != null and camera.has_method("set_fov_offset"):
+		camera.call("set_fov_offset", offset_degrees, duration)
 
 
 ## 手动触发一次背景素材飞入；自动触发仍由 ImageFlyEvent 自己管理。

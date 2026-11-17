@@ -71,6 +71,12 @@ var _lookahead_analyzer: AudioEffectSpectrumAnalyzerInstance
 var _lookahead_bus_index: int = -1
 ## 初始 FOV，用作缩放基准。
 var _base_fov: float
+## 当前不受外部偏移影响的基础 FOV。
+var _base_fov_current: float
+## 外部事件叠加到 FOV 上的偏移角，单位为度。
+var _fov_offset: float = 0.0
+## FOV 偏移的渐变 Tween。
+var _fov_offset_tween: Tween
 ## 当前分段已经过的时间。
 var _segment_elapsed: float = 0.0
 ## 已完成的分段数量，也用于强调分组。
@@ -98,6 +104,7 @@ var _sway_time: float = 0.0
 ## 初始化基准 FOV、BGM 引用和分析器总线。
 func _ready() -> void:
 	_base_fov = fov
+	_base_fov_current = fov
 	_fov_from = fov
 	_fov_to = fov
 	_base_rotation = rotation
@@ -105,6 +112,36 @@ func _ready() -> void:
 	_bgm = get_node_or_null(bgm_path) as AudioStreamPlayer
 	_setup_analyzer_bus()
 	_setup_lookahead()
+
+
+## 给 FOV 叠加一个可正可负、带渐变的外部偏移。
+## [param offset_degrees] 偏移角度；正数扩大 FOV，负数缩小 FOV，单位为度。
+## [param duration] 渐变时长；小于等于 0 时立即应用。
+func set_fov_offset(offset_degrees: float, duration: float = 0.5) -> void:
+	if _fov_offset_tween != null and _fov_offset_tween.is_valid():
+		_fov_offset_tween.kill()
+	if duration <= 0.0:
+		_set_fov_offset_value(offset_degrees)
+		return
+	_fov_offset_tween = create_tween()
+	_fov_offset_tween.tween_method(
+		_set_fov_offset_value,
+		_fov_offset,
+		offset_degrees,
+		duration
+	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+## 立即设置 FOV 偏移并刷新摄像机 FOV。
+## [param value] 偏移角度，单位为度。
+func _set_fov_offset_value(value: float) -> void:
+	_fov_offset = value
+	_apply_fov_value()
+
+
+## 把基础 FOV 与外部偏移合并后写回 Camera3D。
+func _apply_fov_value() -> void:
+	fov = clampf(_base_fov_current + _fov_offset, 1.0, 179.0)
 
 
 ## 叠加轻微、非机械的摄像机呼吸摇摆。
@@ -143,6 +180,8 @@ func _update_sway(delta: float) -> void:
 func _process(delta: float) -> void:
 	_update_sway(delta)
 	_update_lookahead()
+	_update_fov_transition(delta)
+	_apply_fov_value()
 	var use_lookahead := (
 		_lookahead_analyzer != null
 		and _lookahead_player != null
@@ -173,7 +212,6 @@ func _process(delta: float) -> void:
 		_peak_max = 0.0
 		_sample_count = 0
 		_segment_count += 1
-	_update_fov_transition(delta)
 
 
 ## 让提前读取音轨保持领先主 BGM [member lookahead_seconds] 秒。
@@ -209,7 +247,7 @@ func _apply_segment(average_centroid: float, average_peak: float) -> void:
 		0.0,
 		1.0
 	)
-	_fov_from = fov
+	_fov_from = _base_fov_current
 	_fov_to = clampf(
 		_base_fov - (value - 0.5) * zoom_strength_deg,
 		30.0,
@@ -222,11 +260,11 @@ func _apply_segment(average_centroid: float, average_peak: float) -> void:
 ## [param delta] 距上一帧的时间，单位为秒。
 func _update_fov_transition(delta: float) -> void:
 	if segment_transition_duration <= 0.0:
-		fov = _fov_to
+		_base_fov_current = _fov_to
 		return
 	_transition_elapsed = minf(_transition_elapsed + delta, segment_transition_duration)
 	var t := _transition_elapsed / segment_transition_duration
-	fov = lerpf(_fov_from, _fov_to, _ease_transition(t))
+	_base_fov_current = lerpf(_fov_from, _fov_to, _ease_transition(t))
 
 
 ## 将线性时间比例转换为段间缓动值。
