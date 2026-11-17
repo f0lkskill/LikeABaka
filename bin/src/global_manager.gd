@@ -421,7 +421,14 @@ func _bind_performance() -> void:
 	_backdrop = get_node_or_null(backdrop_path)
 	_image_event = get_node_or_null(image_event_path)
 	var world := get_node_or_null(world_environment_path) as WorldEnvironment
+	if world == null:
+		world = get_node_or_null(^"WorldEnvironment") as WorldEnvironment
 	_environment = world.environment if world != null else null
+	# 常态明确关闭 BadApple Bloom，避免场景里误开 Glow 影响普通画面。
+	if _environment != null and not _silhouette_active:
+		_environment.glow_enabled = false
+		_environment.glow_intensity = 0.0
+		_environment.glow_bloom = 0.0
 	_stage_mesh = (
 		_stage.get_node_or_null("CollisionShape3D/MeshInstance3D") as MeshInstance3D
 		if _stage != null
