@@ -82,6 +82,10 @@ var _base_fov_current: float
 			_apply_fov_value()
 ## 当前实际使用的 FOV 偏移缓存。
 var _fov_offset: float = 0.0
+## 自动 FOV 分段更新时是否清除外部偏移。
+@export var clear_fov_offset_on_segment_update: bool = true
+## 清除外部偏移时的渐变时长。
+@export_range(0.0, 2.0, 0.05) var fov_offset_clear_duration: float = 0.2
 ## FOV 偏移的渐变 Tween。
 var _fov_offset_tween: Tween
 ## 当前分段已经过的时间。
@@ -260,6 +264,9 @@ func _apply_segment(average_centroid: float, average_peak: float) -> void:
 		100.0
 	)
 	_transition_elapsed = 0.0
+	# 外部偏移只作用到一个自动 FOV 分段；下一段开始时自动清除。
+	if clear_fov_offset_on_segment_update and not is_zero_approx(_fov_offset):
+		set_fov_offset(0.0, fov_offset_clear_duration)
 
 
 ## 推进段边界之间的 FOV 过渡。
