@@ -184,6 +184,8 @@ void fragment() {
 """
 	_material = ShaderMaterial.new()
 	_material.shader = shader
+	# 律动条先于歌词绘制，避免透明排序把条盖在文字上。
+	_material.render_priority = -1
 	_apply_color()
 	for i in _base_positions.size():
 		var quad := QuadMesh.new()

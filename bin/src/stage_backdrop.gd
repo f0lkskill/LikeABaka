@@ -28,12 +28,12 @@ extends MeshInstance3D
 ## 初始黑块主题色。
 @export var base_theme_color: Color = Color(1.0, 0.4, 0.68, 1.0)
 ## 背景整体亮度；过暗会失去黑白块氛围。
-@export_range(0.0, 1.0, 0.01) var brightness: float = 0.85:
+@export_range(0.0, 1.0, 0.01) var brightness: float = 0.92:
 	set(value):
 		brightness = value
 		_apply_to_shader()
 ## 背景底部相对顶部的额外变暗比例。
-@export_range(0.0, 1.0, 0.01) var bottom_darkness: float = 0.15:
+@export_range(0.0, 1.0, 0.01) var bottom_darkness: float = 0.08:
 	set(value):
 		bottom_darkness = value
 		_apply_to_shader()
@@ -48,7 +48,7 @@ extends MeshInstance3D
 		bar_band_width = value
 		_apply_to_shader()
 ## 律动条压暗带强度；只压暗条后方，避免整面背景过黑。
-@export_range(0.0, 1.0, 0.01) var bar_band_darkness: float = 0.55:
+@export_range(0.0, 1.0, 0.01) var bar_band_darkness: float = 0.28:
 	set(value):
 		bar_band_darkness = value
 		_apply_to_shader()
@@ -256,11 +256,11 @@ uniform float scroll_speed_y = 0.0;
 uniform float split_angle = 0.0;
 uniform float split_softness = 0.18;
 uniform float split_amount = 0.0;
-uniform float brightness = 0.85;
-uniform float bottom_darkness = 0.15;
+uniform float brightness = 0.92;
+uniform float bottom_darkness = 0.08;
 uniform float bar_band_center = 0.45;
 uniform float bar_band_width = 0.22;
-uniform float bar_band_darkness = 0.55;
+uniform float bar_band_darkness = 0.28;
 uniform float texture_mix = 0.0;
 uniform float checker_mix = 0.0;
 uniform float texture_brightness = 0.9;
