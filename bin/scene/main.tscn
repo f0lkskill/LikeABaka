@@ -10,6 +10,7 @@
 [ext_resource type="Script" uid="uid://on1mbif67j7l" path="res://bin/src/stage_rhythm_bars.gd" id="7_bars"]
 [ext_resource type="Script" uid="uid://ce8mnfc7d14a0" path="res://bin/src/stage_backdrop.gd" id="8_backdrop"]
 [ext_resource type="Script" uid="uid://crdfdd0oy3jd" path="res://bin/src/image_fly_event.gd" id="9_fly"]
+[ext_resource type="Script" path="res://bin/src/sakura_petals.gd" id="10_sakura"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_glnxa"]
 
@@ -91,7 +92,7 @@ tracks/1/path = NodePath(".")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
-"times": PackedFloat32Array(0, 10, 12.733334, 13.533334, 16.066668, 18, 29.733334, 30.266666, 32.366665, 32.899998, 41.8, 42.4, 51, 72.03333),
+"times": PackedFloat32Array(0, 10, 12.733334, 13.533334, 16.066668, 18, 29.733334, 30.266666, 33.466667, 34.433334, 41.8, 42.4, 51, 72.03333),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
 "values": [{
 "args": [true],
@@ -162,13 +163,13 @@ tracks/2/keys = {
 "args": ["dis.png"],
 "method": &"rotate_stage_and_switch_character"
 }, {
-"args": [""],
+"args": ["8.png"],
 "method": &"rotate_stage_and_switch_character"
 }, {
-"args": [""],
+"args": ["7.png"],
 "method": &"rotate_stage_and_switch_character"
 }, {
-"args": [""],
+"args": ["10.png"],
 "method": &"rotate_stage_and_switch_character"
 }, {
 "args": [""],
@@ -182,8 +183,8 @@ tracks/3/path = NodePath(".")
 tracks/3/interp = 1
 tracks/3/loop_wrap = true
 tracks/3/keys = {
-"times": PackedFloat32Array(0, 9.6, 11.833333, 14.5, 18.21, 20.19, 22.26, 24.22, 26.67, 31.3, 31.91, 32.7),
-"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"times": PackedFloat32Array(0, 9.6, 11.833333, 14.5, 18.21, 20.19, 22.26, 24.22, 26.67, 31.3, 31.91, 33.966667, 34.62, 35.8, 37.3, 38.86, 43.36, 45.47, 47.15),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
 "values": [{
 "args": ["normal.png"],
 "method": &"set_character_texture"
@@ -219,6 +220,27 @@ tracks/3/keys = {
 "method": &"set_character_texture"
 }, {
 "args": ["5.png"],
+"method": &"set_character_texture"
+}, {
+"args": ["5.png"],
+"method": &"set_character_texture"
+}, {
+"args": ["6.png"],
+"method": &"set_character_texture"
+}, {
+"args": ["6.png"],
+"method": &"set_character_texture"
+}, {
+"args": ["7.png"],
+"method": &"set_character_texture"
+}, {
+"args": ["9.png"],
+"method": &"set_character_texture"
+}, {
+"args": ["10.png"],
+"method": &"set_character_texture"
+}, {
+"args": ["11.png"],
 "method": &"set_character_texture"
 }]
 }
@@ -291,6 +313,10 @@ scroll_speed_y = 0.025
 [node name="ImageFlyEvent" type="Node3D" parent="stage" unique_id=1926754103]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 30, 8)
 script = ExtResource("9_fly")
+
+[node name="SakuraPetals" type="GPUParticles3D" parent="stage" unique_id=1256813407]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 60, 8)
+script = ExtResource("10_sakura")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="stage" unique_id=382366739]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.001, 8)

@@ -105,6 +105,8 @@ signal lyrics_finished
 		_bind_performance()
 ## 每隔多少句歌词触发一次背景素材飞入，1 表示每句都触发。
 @export_range(1, 16, 1) var image_event_every_lines: int = 1
+## 樱花粒子节点路径。
+@export var sakura_path: NodePath = ^"stage/SakuraPetals"
 
 ## 当前绑定的歌词环模板。
 var _lyric_ring: LyricRing
@@ -144,6 +146,8 @@ var _camera_following: bool = false
 var _next_rotation_direction: float = 1.0
 ## 飞入素材事件节点；剪影事件会同步它的颜色状态。
 var _image_event: Node
+## 樱花场景粒子节点。
+var _sakura: Node
 ## 飞入素材事件的歌词计数。
 var _image_event_line_count: int = 0
 ## 当前舞台地面网格。
@@ -330,6 +334,30 @@ func trigger_image_fly() -> void:
 		_image_event.call("trigger_event")
 
 
+## 开启或关闭樱花粒子，并渐变透明度。
+## [param enabled] true 开启，false 关闭。
+## [param duration] 渐变时长，单位为秒。
+func set_sakura_enabled(enabled: bool, duration: float = 1.0) -> void:
+	if _sakura == null:
+		_sakura = get_node_or_null(sakura_path)
+	if _sakura != null and _sakura.has_method("set_enabled"):
+		_sakura.call("set_enabled", enabled, duration)
+	else:
+		push_warning("GlobalManager: 找不到樱花粒子节点")
+
+
+## 设置樱花密度。
+## [param density] 0 到 1 的密度比例。
+## [param duration] 渐变时长，单位为秒。
+func set_sakura_density(density: float, duration: float = 1.0) -> void:
+	if _sakura == null:
+		_sakura = get_node_or_null(sakura_path)
+	if _sakura != null and _sakura.has_method("set_density"):
+		_sakura.call("set_density", density, duration)
+	else:
+		push_warning("GlobalManager: 找不到樱花粒子节点")
+
+
 ## 启动舞台旋转。
 ## [param switch_character] 是否在旋转开始时切换角色集合。
 ## [param texture_file_name] 可选的新角色贴图文件名。
@@ -420,6 +448,7 @@ func _bind_performance() -> void:
 	_rhythm_bars = get_node_or_null(rhythm_bars_path)
 	_backdrop = get_node_or_null(backdrop_path)
 	_image_event = get_node_or_null(image_event_path)
+	_sakura = get_node_or_null(sakura_path)
 	var world := get_node_or_null(world_environment_path) as WorldEnvironment
 	if world == null:
 		world = get_node_or_null(^"WorldEnvironment") as WorldEnvironment
