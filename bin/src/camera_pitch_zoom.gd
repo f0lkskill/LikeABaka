@@ -156,6 +156,15 @@ func set_fov_offset(offset_degrees: float, duration: float = 0.5) -> void:
 		_set_fov_offset_value(offset_degrees)
 
 
+## 在当前 FOV 偏移目标上继续叠加一个增量。
+## 与 [method set_fov_offset] 不同，多次调用会累加而不是覆盖。
+## [param delta_degrees] 叠加角度，单位为度，可正可负。
+## [param duration] 渐变时长。
+func add_fov_offset(delta_degrees: float, duration: float = 0.5) -> void:
+	var base_target := _fov_offset_to if _fov_offset_duration > 0.0 else _fov_offset
+	set_fov_offset(base_target + delta_degrees, duration)
+
+
 ## 按与自动 FOV 相同的缓动曲线推进外部偏移。
 ## [param delta] 本帧时间，单位为秒。
 func _update_fov_offset(delta: float) -> void:

@@ -281,6 +281,17 @@ func set_fov_offset(offset_degrees: float, duration: float = 0.5) -> void:
 		push_warning("GlobalManager: 找不到可用的 FOV Camera3D")
 
 
+## 在当前 FOV 偏移上继续叠加增量；多次调用会累加。
+## [param delta_degrees] 叠加角度，单位为度，可正可负。
+## [param duration] 渐变时长。
+func add_fov_offset(delta_degrees: float, duration: float = 0.5) -> void:
+	var camera := _get_fov_camera()
+	if camera != null and camera.has_method("add_fov_offset"):
+		camera.call("add_fov_offset", delta_degrees, duration)
+	else:
+		push_warning("GlobalManager: 找不到可用的 FOV Camera3D")
+
+
 ## 启用或禁用 BGM 自动 FOV 更新。
 ## [param enabled] true 恢复自动更新，false 冻结当前基础 FOV。
 func set_fov_auto_update_enabled(enabled: bool) -> void:
