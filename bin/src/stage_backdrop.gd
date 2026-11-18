@@ -75,6 +75,8 @@ extends MeshInstance3D
 
 ## 圆柱背景材质。
 var _material: ShaderMaterial
+## 累计滚动偏移，避免改变速度时用 TIME * speed 造成瞬间跳变。
+var _scroll_offset: Vector2 = Vector2.ZERO
 ## 主题色过渡 Tween。
 var _theme_tween: Tween
 ## 背景素材交叉淡入 Tween。
@@ -107,6 +109,14 @@ func _ready() -> void:
 	# 黑白块与主题色作为舞台常驻背景保留；飞入素材是额外叠加的独立效果。
 	set_theme(base_theme_color)
 	_apply_to_shader()
+
+
+## 积分滚动速度，使速度切换保持连续，不会让方块瞬间错位。
+## [param delta] 本帧时间，单位为秒。
+func _process(delta: float) -> void:
+	_scroll_offset += Vector2(scroll_speed, scroll_speed_y) * delta
+	if _material != null:
+		_material.set_shader_parameter("scroll_offset", _scroll_offset)
 
 
 ## 扫描背景目录并选中第一张随机素材。
@@ -253,6 +263,7 @@ uniform vec4 white_color : source_color = vec4(1.0);
 uniform vec2 block_count = vec2(64.0, 48.0);
 uniform float scroll_speed = 0.025;
 uniform float scroll_speed_y = 0.0;
+uniform vec2 scroll_offset = vec2(0.0);
 uniform float split_angle = 0.0;
 uniform float split_softness = 0.18;
 uniform float split_amount = 0.0;
@@ -267,8 +278,7 @@ uniform float texture_brightness = 0.9;
 
 void fragment() {
 	vec2 uv = UV;
-	uv.x += TIME * scroll_speed;
-	uv.y += TIME * scroll_speed_y;
+	uv += scroll_offset;
 	vec2 cell = floor(uv * block_count);
 	float checker = mod(cell.x + cell.y, 2.0);
 	float angle = fract(UV.x + split_angle);
@@ -352,6 +362,7 @@ func _apply_to_shader() -> void:
 	_material.set_shader_parameter("block_count", block_count)
 	_material.set_shader_parameter("scroll_speed", scroll_speed)
 	_material.set_shader_parameter("scroll_speed_y", scroll_speed_y)
+	_material.set_shader_parameter("scroll_offset", _scroll_offset)
 	_material.set_shader_parameter("split_angle", split_angle)
 	_material.set_shader_parameter("split_softness", split_softness)
 	_material.set_shader_parameter("split_amount", _split_amount)
