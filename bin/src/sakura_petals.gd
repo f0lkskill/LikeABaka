@@ -212,16 +212,20 @@ void fragment() {
 	p.x *= 0.72;
 	float radius = length(p);
 	float angle = atan(p.y, p.x);
-	// 五个花瓣的极坐标轮廓。
-	float lobes = 0.62 + 0.27 * abs(cos(angle * 2.5));
-	float alpha = 1.0 - smoothstep(lobes - 0.035, lobes + 0.035, radius);
+	float five_lobes = abs(cos(angle * 2.5));
+	// 五个花瓣之间留出透明缝隙，并让中心保持空心。
+	float angular_gap = smoothstep(0.10, 0.38, five_lobes);
+	float outer_radius = 0.60 + 0.28 * five_lobes;
+	float inner_radius = 0.14;
+	float radial_mask = (
+		1.0 - smoothstep(outer_radius - 0.035, outer_radius + 0.035, radius)
+	) * smoothstep(inner_radius - 0.03, inner_radius + 0.03, radius);
+	float alpha = radial_mask * angular_gap;
 	if (alpha < 0.02) {
 		discard;
 	}
-	float gradient = smoothstep(0.0, lobes, radius);
+	float gradient = smoothstep(inner_radius, outer_radius, radius);
 	vec3 color = mix(petal_color.rgb, petal_light_color.rgb, gradient * 0.75);
-	// 花心使用偏黄的浅色。
-	color = mix(vec3(1.0, 0.86, 0.42), color, smoothstep(0.04, 0.18, radius));
 	color = mix(color, silhouette_color.rgb, silhouette_mix);
 	ALBEDO = color;
 	ALPHA = alpha * fade_alpha;
