@@ -107,6 +107,8 @@ signal lyrics_finished
 @export_range(1, 16, 1) var image_event_every_lines: int = 1
 ## 樱花粒子节点路径。
 @export var sakura_path: NodePath = ^"stage/SakuraPetals"
+## 白色屏幕氛围层路径。
+@export var atmosphere_path: NodePath = ^"WhiteAtmosphere"
 
 ## 当前绑定的歌词环模板。
 var _lyric_ring: LyricRing
@@ -148,6 +150,8 @@ var _next_rotation_direction: float = 1.0
 var _image_event: Node
 ## 樱花场景粒子节点。
 var _sakura: Node
+## 白色屏幕氛围层节点。
+var _atmosphere: Node
 ## 飞入素材事件的歌词计数。
 var _image_event_line_count: int = 0
 ## 当前舞台地面网格。
@@ -380,6 +384,29 @@ func set_sakura_petal_shader(shader: Shader) -> void:
 		push_warning("GlobalManager: 找不到樱花粒子节点")
 
 
+## 设置白色氛围层强度系数。
+## [param value] 强度倍率。
+func set_atmosphere_intensity(value: float) -> void:
+	if _atmosphere == null:
+		_atmosphere = get_node_or_null(atmosphere_path)
+	if _atmosphere != null and _atmosphere.has_method("set_intensity"):
+		_atmosphere.call("set_intensity", value)
+	else:
+		push_warning("GlobalManager: 找不到白色氛围层节点")
+
+
+## 开启或关闭白色氛围层，并渐变透明度。
+## [param enabled] true 开启，false 关闭。
+## [param duration] 渐变时长，单位为秒。
+func set_atmosphere_enabled(enabled: bool, duration: float = 1.0) -> void:
+	if _atmosphere == null:
+		_atmosphere = get_node_or_null(atmosphere_path)
+	if _atmosphere != null and _atmosphere.has_method("set_enabled"):
+		_atmosphere.call("set_enabled", enabled, duration)
+	else:
+		push_warning("GlobalManager: 找不到白色氛围层节点")
+
+
 ## 直接设置背景黑白块的横向滚动速度。
 ## [param speed] 横向 UV 滚动速度，单位与 StageBackdrop.scroll_speed 一致。
 func set_background_scroll_speed_x(speed: float) -> void:
@@ -493,6 +520,7 @@ func _bind_performance() -> void:
 	_backdrop = get_node_or_null(backdrop_path)
 	_image_event = get_node_or_null(image_event_path)
 	_sakura = get_node_or_null(sakura_path)
+	_atmosphere = get_node_or_null(atmosphere_path)
 	var world := get_node_or_null(world_environment_path) as WorldEnvironment
 	if world == null:
 		world = get_node_or_null(^"WorldEnvironment") as WorldEnvironment
@@ -634,6 +662,8 @@ func _enter_silhouette() -> void:
 			true,
 			silhouette_transition_duration
 		)
+	if _atmosphere != null and _atmosphere.has_method("set_badapple_mode"):
+		_atmosphere.call("set_badapple_mode", true)
 	_set_badapple_bloom(true, silhouette_transition_duration)
 
 
@@ -666,6 +696,8 @@ func _exit_silhouette() -> void:
 			false,
 			silhouette_transition_duration
 		)
+	if _atmosphere != null and _atmosphere.has_method("set_badapple_mode"):
+		_atmosphere.call("set_badapple_mode", false)
 	_set_badapple_bloom(false, silhouette_transition_duration)
 	if silhouette_transition_duration <= 0.0:
 		_finish_exit_silhouette()
@@ -937,12 +969,14 @@ func _apply_character_theme(index: int, duration: float) -> void:
 	if character_theme_colors.is_empty():
 		_active_theme_index = index
 		return
+	var color := character_theme_colors[index % character_theme_colors.size()]
+	if _atmosphere != null and _atmosphere.has_method("set_theme_color"):
+		_atmosphere.call("set_theme_color", color)
 	if _silhouette_visuals_applied:
 		_active_theme_index = index
 		if _silhouette_active:
 			_apply_silhouette_colors()
 		return
-	var color := character_theme_colors[index % character_theme_colors.size()]
 	var old_color := character_theme_colors[
 		_active_theme_index % character_theme_colors.size()
 	]
