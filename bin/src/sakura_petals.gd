@@ -11,7 +11,7 @@ extends GPUParticles3D
 ## 花瓣初始密度，0 到 1。
 @export_range(0.0, 1.0, 0.01) var initial_density: float = 0.72
 ## 花瓣生命周期。
-@export_range(2.0, 60.0, 0.5) var particle_lifetime: float = 35.0
+@export_range(2.0, 60.0, 0.5) var particle_lifetime: float = 18.0
 ## 发射区域横向半宽，覆盖整个背幕。
 @export var spawn_half_width: float = 58.0
 ## 发射区域纵深半深。
@@ -21,22 +21,37 @@ extends GPUParticles3D
 ## 每秒固定粒子模拟帧率。
 @export_range(10, 60, 1) var particle_fps: int = 30
 ## 粒子整体速度倍率，用于快速下落。
-@export_range(0.1, 5.0, 0.1) var simulation_speed: float = 2.2
+@export_range(0.1, 5.0, 0.1) var simulation_speed: float = 1.6
 
 @export_group("Look")
 ## 花瓣深色。
-@export var petal_color: Color = Color(0.86, 0.08, 0.16, 1.0)
+@export var petal_color: Color = Color(1.0, 0.52, 0.68, 1.0)
 ## 花瓣浅色。
-@export var petal_light_color: Color = Color(1.0, 0.45, 0.48, 1.0)
+@export var petal_light_color: Color = Color(1.0, 0.86, 0.91, 1.0)
+## 五瓣花使用的红色。
+@export var flower_petal_color: Color = Color(0.86, 0.08, 0.16, 1.0)
+## 五瓣花浅色。
+@export var flower_petal_light_color: Color = Color(1.0, 0.45, 0.48, 1.0)
+## 五瓣花生命周期。
+@export_range(2.0, 60.0, 0.5) var flower_lifetime: float = 35.0
+## 五瓣花整体速度倍率。
+@export_range(0.1, 5.0, 0.1) var flower_simulation_speed: float = 2.2
+## 五瓣花初始下落速度上限与下限。
+@export var flower_initial_speed_min: float = 14.0
+@export var flower_initial_speed_max: float = 22.0
+## 五瓣花重力。
+@export var flower_gravity: float = -7.0
+## 五瓣花旋转速度，刻意比单瓣慢。
+@export var flower_angular_speed: float = 45.0
 ## BadApple 剪影模式下花瓣变成的颜色。
 @export var silhouette_color: Color = Color.BLACK
 ## 花瓣单边尺寸。
 @export var petal_size: float = 1.35
 ## 花瓣形状：0 单瓣，1 五瓣花。
-@export_range(0, 1, 1) var petal_style: int = 1:
+@export_range(0, 1, 1) var petal_style: int = 0:
 	set(value):
 		petal_style = clampi(value, 0, 1)
-		_apply_material_shader()
+		_apply_style_profile()
 
 ## 粒子材质。
 var _material: ShaderMaterial
@@ -59,9 +74,7 @@ var _silhouette_mix: float = 0.0
 ## 构建粒子系统和花瓣 shader。
 func _ready() -> void:
 	amount = max_particles
-	lifetime = particle_lifetime
 	fixed_fps = particle_fps
-	speed_scale = simulation_speed
 	emitting = false
 	visibility_aabb = AABB(
 		Vector3(-80.0, -160.0, -80.0),
@@ -70,6 +83,7 @@ func _ready() -> void:
 	process_material = _create_process_material()
 	_build_petal_shaders()
 	draw_pass_1 = _create_petal_mesh()
+	_apply_style_profile()
 	amount_ratio = initial_density
 	_set_fade(0.0)
 	set_enabled(false, 0.0)
@@ -86,16 +100,16 @@ func _create_process_material() -> ParticleProcessMaterial:
 	)
 	material.direction = Vector3(0.0, -1.0, 0.0)
 	material.spread = 20.0
-	material.initial_velocity_min = 14.0
-	material.initial_velocity_max = 22.0
-	material.gravity = Vector3(0.0, -7.0, 0.0)
-	material.damping_min = 0.02
-	material.damping_max = 0.08
-	material.angular_velocity_min = -45.0
-	material.angular_velocity_max = 45.0
+	material.initial_velocity_min = 8.0
+	material.initial_velocity_max = 14.0
+	material.gravity = Vector3(0.0, -4.2, 0.0)
+	material.damping_min = 0.03
+	material.damping_max = 0.12
+	material.angular_velocity_min = -220.0
+	material.angular_velocity_max = 220.0
 	material.angle_min = -180.0
 	material.angle_max = 180.0
-	material.particle_flag_rotate_y = false
+	material.particle_flag_rotate_y = true
 	material.scale_min = 0.7
 	material.scale_max = 1.6
 	material.turbulence_enabled = true
@@ -113,6 +127,31 @@ func _create_petal_mesh() -> QuadMesh:
 	_apply_material_parameters()
 	mesh.material = _material
 	return mesh
+
+
+## 应用当前形状专属的运动与寿命参数。
+## 单瓣保持柔和樱花参数，五瓣花使用独立的红色花朵参数。
+func _apply_style_profile() -> void:
+	var flower_style := petal_style == 1
+	lifetime = flower_lifetime if flower_style else particle_lifetime
+	speed_scale = flower_simulation_speed if flower_style else simulation_speed
+	var process := process_material as ParticleProcessMaterial
+	if process != null:
+		if flower_style:
+			process.initial_velocity_min = flower_initial_speed_min
+			process.initial_velocity_max = flower_initial_speed_max
+			process.gravity = Vector3(0.0, flower_gravity, 0.0)
+			process.angular_velocity_min = -flower_angular_speed
+			process.angular_velocity_max = flower_angular_speed
+			process.particle_flag_rotate_y = false
+		else:
+			process.initial_velocity_min = 8.0
+			process.initial_velocity_max = 14.0
+			process.gravity = Vector3(0.0, -4.2, 0.0)
+			process.angular_velocity_min = -220.0
+			process.angular_velocity_max = 220.0
+			process.particle_flag_rotate_y = true
+	_apply_material_shader()
 
 
 ## 构建内置的单瓣与五瓣花 shader。
@@ -207,8 +246,11 @@ func _apply_material_shader() -> void:
 func _apply_material_parameters() -> void:
 	if _material == null:
 		return
-	_material.set_shader_parameter("petal_color", petal_color)
-	_material.set_shader_parameter("petal_light_color", petal_light_color)
+	var flower_style := petal_style == 1
+	var dark_color := flower_petal_color if flower_style else petal_color
+	var light_color := flower_petal_light_color if flower_style else petal_light_color
+	_material.set_shader_parameter("petal_color", dark_color)
+	_material.set_shader_parameter("petal_light_color", light_color)
 	_material.set_shader_parameter("silhouette_color", silhouette_color)
 	_material.set_shader_parameter("silhouette_mix", _silhouette_mix)
 	_material.set_shader_parameter("fade_alpha", _fade)
