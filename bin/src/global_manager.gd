@@ -971,7 +971,7 @@ func _apply_character_theme(index: int, duration: float) -> void:
 		return
 	var color := character_theme_colors[index % character_theme_colors.size()]
 	if _atmosphere != null and _atmosphere.has_method("set_theme_color"):
-		_atmosphere.call("set_theme_color", color)
+		_atmosphere.call("set_theme_color", color, duration)
 	if _silhouette_visuals_applied:
 		_active_theme_index = index
 		if _silhouette_active:

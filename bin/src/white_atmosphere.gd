@@ -3,21 +3,24 @@ extends CanvasLayer
 ## 全屏白色氛围层。
 ##
 ## 画面边缘为白色，向屏幕中心逐渐透明；颜色会混合当前角色主题色。
-## 强度跟随 Camera3D 的自动 FOV 变化，并支持开关渐变和 BadApple 白色模式。
+## 强度逐帧读取 BGM 频谱，并支持开关渐变和 BadApple 白色模式。
 
-@export var camera_path: NodePath = ^"stage/Node3D/Camera3D"
+const ANALYZER_BUS := "BGM_Analyzer"
+
 ## 氛围强度系数，最终透明度会乘以它。
 @export_range(0.0, 2.0, 0.01) var intensity_coefficient: float = 1.15
 ## 主题色混合到白色底色的比例。
 @export_range(0.0, 1.0, 0.01) var theme_tint_strength: float = 0.28
-## 是否跟随 BGM 自动计算出的 FOV 强度。
-@export var follow_fov: bool = true
-## FOV 映射下限。
-@export var fov_min: float = 30.0
-## FOV 映射上限。
-@export var fov_max: float = 100.0
-## FOV 变化对强度的影响比例。
-@export_range(0.0, 1.0, 0.01) var fov_influence: float = 0.85
+## BGM 分析频段下限。
+@export var bgm_min_hz: float = 60.0
+## BGM 分析频段上限。
+@export var bgm_max_hz: float = 4000.0
+## BGM 频谱增益。
+@export var bgm_gain: float = 2.0
+## 静音时的最低强度比例。
+@export_range(0.0, 1.0, 0.01) var bgm_floor: float = 0.2
+## 强度跟随 BGM 的平滑速度。
+@export_range(1.0, 40.0, 0.1) var bgm_smoothing: float = 12.0
 ## 渐变开始位置，0 为屏幕中心，1 为边缘。
 @export_range(0.0, 1.0, 0.01) var edge_start: float = 0.18
 ## 渐变结束位置。
@@ -37,8 +40,12 @@ var _badapple_mode: bool = false
 var _enabled_fade: float = 0.0
 ## 开关渐变 Tween。
 var _fade_tween: Tween
-## 当前 FOV 强度因子。
-var _fov_factor: float = 1.0
+## 主题色渐变 Tween。
+var _theme_tween: Tween
+## BGM 频谱分析器。
+var _analyzer: AudioEffectSpectrumAnalyzerInstance
+## 当前 BGM 强度，范围 0 到 1。
+var _bgm_energy: float = 0.0
 ## 当前实际透明度。
 var _opacity: float = 0.0
 
@@ -55,14 +62,50 @@ func _ready() -> void:
 	_material.shader = _create_shader()
 	_rect.material = _material
 	add_child(_rect)
+	_setup_bgm_analyzer()
 	visible = false
 	_refresh_tint()
 	_apply_opacity()
 
 
-## 设置角色主题色；BadApple 模式下仍保持白色。
+## 绑定 BGM 频谱分析器；如果总线已由摄像机创建则直接复用。
+func _setup_bgm_analyzer() -> void:
+	var bus_index := AudioServer.get_bus_index(ANALYZER_BUS)
+	if bus_index == -1:
+		AudioServer.add_bus()
+		bus_index = AudioServer.get_bus_count() - 1
+		AudioServer.set_bus_name(bus_index, ANALYZER_BUS)
+		AudioServer.set_bus_send(bus_index, "Master")
+	if AudioServer.get_bus_effect_count(bus_index) == 0:
+		var analyzer_effect := AudioEffectSpectrumAnalyzer.new()
+		AudioServer.add_bus_effect(bus_index, analyzer_effect)
+	_analyzer = AudioServer.get_bus_effect_instance(
+		bus_index,
+		0
+	) as AudioEffectSpectrumAnalyzerInstance
+
+
+## 设置角色主题色；颜色变化可以渐变。
 ## [param color] 当前角色主题色。
-func set_theme_color(color: Color) -> void:
+## [param duration] 渐变时长；小于等于 0 时立即应用。
+func set_theme_color(color: Color, duration: float = 0.0) -> void:
+	if _theme_tween != null and _theme_tween.is_valid():
+		_theme_tween.kill()
+	if duration <= 0.0:
+		_set_theme_color_value(color)
+		return
+	_theme_tween = create_tween()
+	_theme_tween.tween_method(
+		_set_theme_color_value,
+		_theme_color,
+		color,
+		duration
+	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+## 更新主题色缓存并刷新着色器颜色。
+## [param color] 过渡中的主题色。
+func _set_theme_color_value(color: Color) -> void:
 	_theme_color = color
 	_refresh_tint()
 
@@ -104,23 +147,23 @@ func set_badapple_mode(active: bool) -> void:
 	_refresh_tint()
 
 
-## 每帧根据 BGM 自动 FOV 更新氛围强度。
+## 每帧读取当前 BGM 频谱并更新氛围强度。
 ## [param delta] 本帧时间，单位为秒。
 func _process(delta: float) -> void:
-	if follow_fov:
-		var camera := get_node_or_null(camera_path) as Camera3D
-		if camera != null:
-			# 只取 BGM 自动算出的 FOV，手动 FOV 偏移不会影响氛围层。
-			var auto_fov := camera.fov
-			if camera.has_method("get_auto_fov_value"):
-				auto_fov = float(camera.call("get_auto_fov_value"))
-			var fov_ratio := clampf(
-				inverse_lerp(fov_min, maxf(fov_max, fov_min + 1.0), auto_fov),
-				0.0,
-				1.0
-			)
-			_fov_factor = lerpf(1.0 - fov_influence, 1.0, fov_ratio)
-	var target := intensity_coefficient * _fov_factor * _enabled_fade
+	var energy := 0.0
+	if _analyzer != null:
+		var magnitude := _analyzer.get_magnitude_for_frequency_range(
+			bgm_min_hz,
+			maxf(bgm_max_hz, bgm_min_hz + 1.0)
+		)
+		energy = clampf(maxf(magnitude.x, magnitude.y) * bgm_gain, 0.0, 1.0)
+	_bgm_energy = lerpf(
+		_bgm_energy,
+		energy,
+		clampf(delta * bgm_smoothing, 0.0, 1.0)
+	)
+	var music_strength := lerpf(bgm_floor, 1.0, _bgm_energy)
+	var target := intensity_coefficient * music_strength * _enabled_fade
 	_opacity = lerpf(_opacity, target, clampf(delta * 12.0, 0.0, 1.0))
 	_apply_opacity()
 
