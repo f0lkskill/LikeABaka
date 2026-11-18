@@ -11,7 +11,7 @@ extends GPUParticles3D
 ## 花瓣初始密度，0 到 1。
 @export_range(0.0, 1.0, 0.01) var initial_density: float = 0.72
 ## 花瓣生命周期。
-@export_range(2.0, 30.0, 0.5) var particle_lifetime: float = 18.0
+@export_range(2.0, 60.0, 0.5) var particle_lifetime: float = 35.0
 ## 发射区域横向半宽，覆盖整个背幕。
 @export var spawn_half_width: float = 58.0
 ## 发射区域纵深半深。
@@ -21,13 +21,13 @@ extends GPUParticles3D
 ## 每秒固定粒子模拟帧率。
 @export_range(10, 60, 1) var particle_fps: int = 30
 ## 粒子整体速度倍率，用于快速下落。
-@export_range(0.1, 5.0, 0.1) var simulation_speed: float = 1.6
+@export_range(0.1, 5.0, 0.1) var simulation_speed: float = 2.2
 
 @export_group("Look")
 ## 花瓣深色。
-@export var petal_color: Color = Color(1.0, 0.52, 0.68, 1.0)
+@export var petal_color: Color = Color(0.86, 0.08, 0.16, 1.0)
 ## 花瓣浅色。
-@export var petal_light_color: Color = Color(1.0, 0.86, 0.91, 1.0)
+@export var petal_light_color: Color = Color(1.0, 0.45, 0.48, 1.0)
 ## BadApple 剪影模式下花瓣变成的颜色。
 @export var silhouette_color: Color = Color.BLACK
 ## 花瓣单边尺寸。
@@ -86,16 +86,16 @@ func _create_process_material() -> ParticleProcessMaterial:
 	)
 	material.direction = Vector3(0.0, -1.0, 0.0)
 	material.spread = 20.0
-	material.initial_velocity_min = 8.0
-	material.initial_velocity_max = 14.0
-	material.gravity = Vector3(0.0, -4.2, 0.0)
-	material.damping_min = 0.03
-	material.damping_max = 0.12
-	material.angular_velocity_min = -220.0
-	material.angular_velocity_max = 220.0
+	material.initial_velocity_min = 14.0
+	material.initial_velocity_max = 22.0
+	material.gravity = Vector3(0.0, -7.0, 0.0)
+	material.damping_min = 0.02
+	material.damping_max = 0.08
+	material.angular_velocity_min = -45.0
+	material.angular_velocity_max = 45.0
 	material.angle_min = -180.0
 	material.angle_max = 180.0
-	material.particle_flag_rotate_y = true
+	material.particle_flag_rotate_y = false
 	material.scale_min = 0.7
 	material.scale_max = 1.6
 	material.turbulence_enabled = true
