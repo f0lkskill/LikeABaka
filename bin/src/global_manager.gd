@@ -380,6 +380,28 @@ func set_sakura_petal_shader(shader: Shader) -> void:
 		push_warning("GlobalManager: 找不到樱花粒子节点")
 
 
+## 直接设置背景黑白块的横向滚动速度。
+## [param speed] 横向 UV 滚动速度，单位与 StageBackdrop.scroll_speed 一致。
+func set_background_scroll_speed_x(speed: float) -> void:
+	if _backdrop == null:
+		_backdrop = get_node_or_null(backdrop_path)
+	if _backdrop != null:
+		_backdrop.set("scroll_speed", speed)
+	else:
+		push_warning("GlobalManager: 找不到舞台背景节点")
+
+
+## 直接设置背景黑白块的纵向滚动速度。
+## [param speed] 纵向 UV 滚动速度，单位与 StageBackdrop.scroll_speed_y 一致。
+func set_background_scroll_speed_y(speed: float) -> void:
+	if _backdrop == null:
+		_backdrop = get_node_or_null(backdrop_path)
+	if _backdrop != null:
+		_backdrop.set("scroll_speed_y", speed)
+	else:
+		push_warning("GlobalManager: 找不到舞台背景节点")
+
+
 ## 启动舞台旋转。
 ## [param switch_character] 是否在旋转开始时切换角色集合。
 ## [param texture_file_name] 可选的新角色贴图文件名。
