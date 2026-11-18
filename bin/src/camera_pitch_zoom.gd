@@ -140,6 +140,11 @@ func _ready() -> void:
 
 ## 启用或禁用 BGM 自动 FOV 更新。
 ## [param enabled] true 恢复自动更新，false 冻结当前基础 FOV。
+## 返回 BGM 自动计算出的基础 FOV，不包含手动 FOV 偏移。
+func get_auto_fov_value() -> float:
+	return _base_fov_current
+
+
 func set_auto_fov_enabled(enabled: bool) -> void:
 	auto_fov_enabled = enabled
 

@@ -10,7 +10,7 @@ extends CanvasLayer
 @export_range(0.0, 2.0, 0.01) var intensity_coefficient: float = 0.45
 ## 主题色混合到白色底色的比例。
 @export_range(0.0, 1.0, 0.01) var theme_tint_strength: float = 0.28
-## 是否跟随 FOV 自动变化强度。
+## 是否跟随 BGM 自动计算出的 FOV 强度。
 @export var follow_fov: bool = true
 ## FOV 映射下限。
 @export var fov_min: float = 30.0
@@ -104,14 +104,18 @@ func set_badapple_mode(active: bool) -> void:
 	_refresh_tint()
 
 
-## 每帧根据 FOV 更新氛围强度。
+## 每帧根据 BGM 自动 FOV 更新氛围强度。
 ## [param delta] 本帧时间，单位为秒。
 func _process(delta: float) -> void:
 	if follow_fov:
 		var camera := get_node_or_null(camera_path) as Camera3D
 		if camera != null:
+			# 只取 BGM 自动算出的 FOV，手动 FOV 偏移不会影响氛围层。
+			var auto_fov := camera.fov
+			if camera.has_method("get_auto_fov_value"):
+				auto_fov = float(camera.call("get_auto_fov_value"))
 			var fov_ratio := clampf(
-				inverse_lerp(fov_min, maxf(fov_max, fov_min + 1.0), camera.fov),
+				inverse_lerp(fov_min, maxf(fov_max, fov_min + 1.0), auto_fov),
 				0.0,
 				1.0
 			)
