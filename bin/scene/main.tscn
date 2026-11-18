@@ -311,7 +311,7 @@ character_theme_colors = PackedColorArray(1, 0.4, 0.68, 1, 0.62, 0.04, 0.1, 1)
 auto_silhouette_events = false
 silhouette_ranges = PackedVector2Array(0, 10, 51, 71.04)
 silhouette_bar_color = Color(0, 0, 0, 1)
-badapple_glow_intensity = 0.45
+badapple_glow_intensity = 0.6
 badapple_glow_bloom = 0.08
 
 [node name="stage" type="StaticBody3D" parent="." unique_id=1970860928]
@@ -329,10 +329,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 30, 8)
 script = ExtResource("9_fly")
 
 [node name="SakuraPetals" type="GPUParticles3D" parent="stage" unique_id=1256813407]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 120, 8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 80, 8)
 script = ExtResource("10_sakura")
 particle_lifetime = 30.0
-ring_height = 16.0
 petal_size = 1.8
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="stage" unique_id=382366739]

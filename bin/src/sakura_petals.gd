@@ -20,6 +20,8 @@ extends GPUParticles3D
 @export_range(0.0, 20.0, 0.1) var spawn_thickness: float = 0.5
 ## 每秒固定粒子模拟帧率。
 @export_range(10, 60, 1) var particle_fps: int = 30
+## 粒子整体速度倍率，用于快速下落。
+@export_range(0.1, 5.0, 0.1) var simulation_speed: float = 2.0
 
 @export_group("Look")
 ## 花瓣深色。
@@ -46,6 +48,7 @@ func _ready() -> void:
 	amount = max_particles
 	lifetime = particle_lifetime
 	fixed_fps = particle_fps
+	speed_scale = simulation_speed
 	emitting = false
 	visibility_aabb = AABB(
 		Vector3(-80.0, -160.0, -80.0),
@@ -69,9 +72,9 @@ func _create_process_material() -> ParticleProcessMaterial:
 	)
 	material.direction = Vector3(0.0, -1.0, 0.0)
 	material.spread = 14.0
-	material.initial_velocity_min = 8.0
-	material.initial_velocity_max = 14.0
-	material.gravity = Vector3(0.0, -5.0, 0.0)
+	material.initial_velocity_min = 12.0
+	material.initial_velocity_max = 20.0
+	material.gravity = Vector3(0.0, -8.0, 0.0)
 	material.damping_min = 0.02
 	material.damping_max = 0.08
 	material.angular_velocity_min = -160.0
@@ -81,8 +84,8 @@ func _create_process_material() -> ParticleProcessMaterial:
 	material.scale_min = 0.7
 	material.scale_max = 1.6
 	material.turbulence_enabled = true
-	material.turbulence_noise_strength = 1.1
-	material.turbulence_noise_scale = 1.4
+	material.turbulence_noise_strength = 0.7
+	material.turbulence_noise_scale = 1.6
 	return material
 
 
