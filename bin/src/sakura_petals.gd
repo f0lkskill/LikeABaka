@@ -21,13 +21,15 @@ extends GPUParticles3D
 ## 每秒固定粒子模拟帧率。
 @export_range(10, 60, 1) var particle_fps: int = 30
 ## 粒子整体速度倍率，用于快速下落。
-@export_range(0.1, 5.0, 0.1) var simulation_speed: float = 2.0
+@export_range(0.1, 5.0, 0.1) var simulation_speed: float = 1.6
 
 @export_group("Look")
 ## 花瓣深色。
 @export var petal_color: Color = Color(1.0, 0.52, 0.68, 1.0)
 ## 花瓣浅色。
 @export var petal_light_color: Color = Color(1.0, 0.86, 0.91, 1.0)
+## BadApple 剪影模式下花瓣变成的颜色。
+@export var silhouette_color: Color = Color.BLACK
 ## 花瓣单边尺寸。
 @export var petal_size: float = 1.35
 
@@ -41,6 +43,10 @@ var _density_tween: Tween
 var _fade: float = 0.0
 ## 是否处于开启状态。
 var _enabled: bool = false
+## 剪影颜色混合 Tween。
+var _silhouette_tween: Tween
+## 当前剪影颜色混合值。
+var _silhouette_mix: float = 0.0
 
 
 ## 构建粒子系统和花瓣 shader。
@@ -71,21 +77,22 @@ func _create_process_material() -> ParticleProcessMaterial:
 		spawn_half_depth
 	)
 	material.direction = Vector3(0.0, -1.0, 0.0)
-	material.spread = 14.0
-	material.initial_velocity_min = 12.0
-	material.initial_velocity_max = 20.0
-	material.gravity = Vector3(0.0, -8.0, 0.0)
-	material.damping_min = 0.02
-	material.damping_max = 0.08
-	material.angular_velocity_min = -160.0
-	material.angular_velocity_max = 160.0
+	material.spread = 20.0
+	material.initial_velocity_min = 8.0
+	material.initial_velocity_max = 14.0
+	material.gravity = Vector3(0.0, -4.2, 0.0)
+	material.damping_min = 0.03
+	material.damping_max = 0.12
+	material.angular_velocity_min = -220.0
+	material.angular_velocity_max = 220.0
 	material.angle_min = -180.0
 	material.angle_max = 180.0
+	material.particle_flag_rotate_y = true
 	material.scale_min = 0.7
 	material.scale_max = 1.6
 	material.turbulence_enabled = true
-	material.turbulence_noise_strength = 0.7
-	material.turbulence_noise_scale = 1.6
+	material.turbulence_noise_strength = 1.5
+	material.turbulence_noise_scale = 2.4
 	return material
 
 
@@ -100,6 +107,8 @@ render_mode unshaded, cull_disabled, blend_mix, depth_draw_never;
 
 uniform vec4 petal_color : source_color = vec4(1.0, 0.52, 0.68, 1.0);
 uniform vec4 petal_light_color : source_color = vec4(1.0, 0.86, 0.91, 1.0);
+uniform vec4 silhouette_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
+uniform float silhouette_mix : hint_range(0.0, 1.0) = 0.0;
 uniform float fade_alpha : hint_range(0.0, 1.0) = 0.0;
 
 void fragment() {
@@ -114,6 +123,7 @@ void fragment() {
 	}
 	float gradient = smoothstep(-1.0, 1.0, p.y);
 	vec3 color = mix(petal_color.rgb, petal_light_color.rgb, gradient * 0.65);
+	color = mix(color, silhouette_color.rgb, silhouette_mix);
 	ALBEDO = color;
 	ALPHA = alpha * fade_alpha;
 }
@@ -122,6 +132,7 @@ void fragment() {
 	_material.shader = shader
 	_material.set_shader_parameter("petal_color", petal_color)
 	_material.set_shader_parameter("petal_light_color", petal_light_color)
+	_material.set_shader_parameter("silhouette_color", silhouette_color)
 	mesh.material = _material
 	return mesh
 
@@ -155,6 +166,33 @@ func set_enabled(enabled: bool, duration: float = 1.0) -> void:
 		.set_trans(Tween.TRANS_SINE) \
 		.set_ease(Tween.EASE_IN_OUT)
 	_fade_tween.tween_callback(_stop_emitting)
+
+
+## 切换花瓣的 BadApple 剪影颜色。
+## [param active] true 变成剪影色，false 恢复粉色。
+## [param duration] 颜色渐变时长。
+func set_silhouette_mode(active: bool, duration: float) -> void:
+	var target := 1.0 if active else 0.0
+	if _silhouette_tween != null and _silhouette_tween.is_valid():
+		_silhouette_tween.kill()
+	if duration <= 0.0:
+		_set_silhouette_mix(target)
+		return
+	_silhouette_tween = create_tween()
+	_silhouette_tween.tween_method(
+		_set_silhouette_mix,
+		_silhouette_mix,
+		target,
+		duration
+	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+## 设置花瓣剪影混合值。
+## [param value] 0 为粉色，1 为纯剪影色。
+func _set_silhouette_mix(value: float) -> void:
+	_silhouette_mix = clampf(value, 0.0, 1.0)
+	if _material != null:
+		_material.set_shader_parameter("silhouette_mix", _silhouette_mix)
 
 
 ## 设置花瓣密度。

@@ -584,6 +584,12 @@ func _enter_silhouette() -> void:
 			true,
 			silhouette_transition_duration
 		)
+	if _sakura != null and _sakura.has_method("set_silhouette_mode"):
+		_sakura.call(
+			"set_silhouette_mode",
+			true,
+			silhouette_transition_duration
+		)
 	_set_badapple_bloom(true, silhouette_transition_duration)
 
 
@@ -606,6 +612,12 @@ func _exit_silhouette() -> void:
 	# 飞入素材随剪影一起渐变回原色。
 	if _image_event != null and _image_event.has_method("set_silhouette_mode"):
 		_image_event.call(
+			"set_silhouette_mode",
+			false,
+			silhouette_transition_duration
+		)
+	if _sakura != null and _sakura.has_method("set_silhouette_mode"):
+		_sakura.call(
 			"set_silhouette_mode",
 			false,
 			silhouette_transition_duration
