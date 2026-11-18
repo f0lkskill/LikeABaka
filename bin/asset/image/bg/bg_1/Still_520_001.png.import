@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cisqr5cea185h"
-path="res://.godot/imported/Still_002_001.png-44050026139653d4f67595f3e79778aa.ctex"
+uid="uid://clibum07ew0jg"
+path="res://.godot/imported/Still_520_001.png-c7065b78993ed76a30f9b18a59b0f9ea.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://bin/asset/image/bg/Still_002_001.png"
-dest_files=["res://.godot/imported/Still_002_001.png-44050026139653d4f67595f3e79778aa.ctex"]
+source_file="res://bin/asset/image/bg/bg_1/Still_520_001.png"
+dest_files=["res://.godot/imported/Still_520_001.png-c7065b78993ed76a30f9b18a59b0f9ea.ctex"]
 
 [params]
 
@@ -24,7 +24,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 mipmaps/preserve_alpha_test_coverage=false
 mipmaps/alpha_test_threshold=0.5
@@ -40,4 +40,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=0
+detect_3d/compress_to=1

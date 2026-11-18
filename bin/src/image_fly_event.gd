@@ -7,8 +7,12 @@ extends Node3D
 ## 停留一段时间后继续沿相同方向飞出。卡片带有噪声撕裂描边。
 
 @export_group("Images")
-## 随机背景素材目录。
-@export_dir var image_directory: String = "res://bin/asset/image/bg"
+## 角色 1 使用的背景素材目录。
+@export_dir var character_one_directory: String = "res://bin/asset/image/bg/bg_1"
+## 角色 2 使用的背景素材目录。
+@export_dir var character_two_directory: String = "res://bin/asset/image/bg/bg_2"
+## 两个角色共用的背景素材目录，只读取该目录下直接的 png。
+@export_dir var shared_directory: String = "res://bin/asset/image/bg"
 ## 面板整体宽度，最终尺寸还会乘以 [member card_scale]。
 @export var panel_width: float = 40.0
 ## 面板整体缩放倍率。
@@ -73,8 +77,14 @@ extends Node3D
 ## 噪声频率，越大边缘越碎。
 @export_range(1.0, 60.0, 0.5) var noise_scale: float = 20.0
 
-## 已加载的背景素材。
+## 当前角色可用的背景素材。
 var _textures: Array[Texture2D] = []
+## 每个角色目录单独加载的素材。
+var _character_textures: Array = []
+## 两个角色共用的背景素材。
+var _shared_textures: Array[Texture2D] = []
+## 当前角色索引：0 为角色 1，1 为角色 2。
+var _active_character_index: int = 0
 ## 当前存活的弧形面板。
 var _active_cards: Array[MeshInstance3D] = []
 ## 素材抽取袋，保证每张素材单独使用一次后再重新洗牌。
@@ -231,19 +241,41 @@ func _set_material_silhouette_mix(value: float, material: ShaderMaterial) -> voi
 
 ## 载入目录中的全部 png 背景素材。
 func _load_images() -> void:
-	_textures.clear()
-	var directory := DirAccess.open(image_directory)
+	_character_textures.clear()
+	_character_textures.append(_scan_directory(character_one_directory))
+	_character_textures.append(_scan_directory(character_two_directory))
+	_shared_textures = _scan_directory(shared_directory)
+	set_character_index(_active_character_index)
+
+
+## 扫描目录下直接的 png 素材，不递归子目录。
+## [param directory_path] 素材目录路径。
+func _scan_directory(directory_path: String) -> Array[Texture2D]:
+	var result: Array[Texture2D] = []
+	var directory := DirAccess.open(directory_path)
 	if directory == null:
-		push_warning("ImageFlyEvent: 无法打开素材目录: %s" % image_directory)
-		return
+		push_warning("ImageFlyEvent: 无法打开素材目录: %s" % directory_path)
+		return result
 	var files := directory.get_files()
 	files.sort()
 	for file in files:
 		if file.get_extension().to_lower() != "png":
 			continue
-		var loaded := load(image_directory.path_join(file)) as Texture2D
+		var loaded := load(directory_path.path_join(file)) as Texture2D
 		if loaded != null:
-			_textures.append(loaded)
+			result.append(loaded)
+	return result
+
+
+## 设置当前角色可使用的素材池；所有现存飞入卡片不会改变。
+## [param index] 0 为角色 1，1 为角色 2。
+func set_character_index(index: int) -> void:
+	_active_character_index = clampi(index, 0, 1)
+	_textures.clear()
+	if _active_character_index < _character_textures.size():
+		for texture in _character_textures[_active_character_index]:
+			_textures.append(texture)
+	_textures.append_array(_shared_textures)
 	_refill_texture_bag()
 
 

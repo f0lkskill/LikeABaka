@@ -974,6 +974,8 @@ func _on_character_set_changed(index: int) -> void:
 func _apply_character_theme(index: int, duration: float) -> void:
 	if Engine.is_editor_hint():
 		return
+	if _image_event != null and _image_event.has_method("set_character_index"):
+		_image_event.call("set_character_index", index)
 	if character_theme_colors.is_empty():
 		_active_theme_index = index
 		return
