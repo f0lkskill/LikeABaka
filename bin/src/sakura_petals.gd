@@ -32,9 +32,16 @@ extends GPUParticles3D
 @export var silhouette_color: Color = Color.BLACK
 ## 花瓣单边尺寸。
 @export var petal_size: float = 1.35
+## 花瓣形状：0 单瓣，1 五瓣花。
+@export_range(0, 1, 1) var petal_style: int = 1:
+	set(value):
+		petal_style = clampi(value, 0, 1)
+		_apply_material_shader()
 
 ## 粒子材质。
 var _material: ShaderMaterial
+## 内置花瓣 shader 列表。
+var _style_shaders: Array[Shader] = []
 ## 开关渐变 Tween。
 var _fade_tween: Tween
 ## 密度渐变 Tween。
@@ -61,6 +68,7 @@ func _ready() -> void:
 		Vector3(160.0, 320.0, 160.0)
 	)
 	process_material = _create_process_material()
+	_build_petal_shaders()
 	draw_pass_1 = _create_petal_mesh()
 	amount_ratio = initial_density
 	_set_fade(0.0)
@@ -100,6 +108,22 @@ func _create_process_material() -> ParticleProcessMaterial:
 func _create_petal_mesh() -> QuadMesh:
 	var mesh := QuadMesh.new()
 	mesh.size = Vector2(petal_size, petal_size * 0.72)
+	_material = ShaderMaterial.new()
+	_apply_material_shader()
+	_apply_material_parameters()
+	mesh.material = _material
+	return mesh
+
+
+## 构建内置的单瓣与五瓣花 shader。
+func _build_petal_shaders() -> void:
+	_style_shaders.clear()
+	_style_shaders.append(_create_single_petal_shader())
+	_style_shaders.append(_create_flower_petal_shader())
+
+
+## 单瓣花瓣 shader。
+func _create_single_petal_shader() -> Shader:
 	var shader := Shader.new()
 	shader.code = """
 shader_type spatial;
@@ -113,7 +137,6 @@ uniform float fade_alpha : hint_range(0.0, 1.0) = 0.0;
 
 void fragment() {
 	vec2 p = UV * 2.0 - 1.0;
-	// 用椭圆和顶部凹口构成简单花瓣轮廓。
 	float d = length(vec2(p.x * 1.25, p.y)) - 0.86;
 	float notch = smoothstep(0.0, 0.25, -p.y) * smoothstep(0.0, 0.45, abs(p.x));
 	d += notch * 0.14;
@@ -128,13 +151,82 @@ void fragment() {
 	ALPHA = alpha * fade_alpha;
 }
 """
-	_material = ShaderMaterial.new()
-	_material.shader = shader
+	return shader
+
+
+## 五瓣花朵 shader，使用极坐标生成类似樱花的轮廓。
+func _create_flower_petal_shader() -> Shader:
+	var shader := Shader.new()
+	shader.code = """
+shader_type spatial;
+render_mode unshaded, cull_disabled, blend_mix, depth_draw_never;
+
+uniform vec4 petal_color : source_color = vec4(1.0, 0.52, 0.68, 1.0);
+uniform vec4 petal_light_color : source_color = vec4(1.0, 0.86, 0.91, 1.0);
+uniform vec4 silhouette_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
+uniform float silhouette_mix : hint_range(0.0, 1.0) = 0.0;
+uniform float fade_alpha : hint_range(0.0, 1.0) = 0.0;
+
+void fragment() {
+	vec2 p = UV * 2.0 - 1.0;
+	// 四边形高度为宽度的 0.72 倍，横向补偿后花朵才是正圆。
+	p.x *= 0.72;
+	float radius = length(p);
+	float angle = atan(p.y, p.x);
+	// 五个花瓣的极坐标轮廓。
+	float lobes = 0.62 + 0.27 * abs(cos(angle * 2.5));
+	float alpha = 1.0 - smoothstep(lobes - 0.035, lobes + 0.035, radius);
+	if (alpha < 0.02) {
+		discard;
+	}
+	float gradient = smoothstep(0.0, lobes, radius);
+	vec3 color = mix(petal_color.rgb, petal_light_color.rgb, gradient * 0.75);
+	// 花心使用偏黄的浅色。
+	color = mix(vec3(1.0, 0.86, 0.42), color, smoothstep(0.04, 0.18, radius));
+	color = mix(color, silhouette_color.rgb, silhouette_mix);
+	ALBEDO = color;
+	ALPHA = alpha * fade_alpha;
+}
+"""
+	return shader
+
+
+## 把当前形状对应的 shader 应用到共享材质，所有粒子会立即一起更新。
+func _apply_material_shader() -> void:
+	if _material == null or _style_shaders.is_empty():
+		return
+	_material.shader = _style_shaders[clampi(
+		petal_style,
+		0,
+		_style_shaders.size() - 1
+	)]
+	_apply_material_parameters()
+
+
+## 重新写入花瓣 shader 的统一参数。
+func _apply_material_parameters() -> void:
+	if _material == null:
+		return
 	_material.set_shader_parameter("petal_color", petal_color)
 	_material.set_shader_parameter("petal_light_color", petal_light_color)
 	_material.set_shader_parameter("silhouette_color", silhouette_color)
-	mesh.material = _material
-	return mesh
+	_material.set_shader_parameter("silhouette_mix", _silhouette_mix)
+	_material.set_shader_parameter("fade_alpha", _fade)
+
+
+## 一键切换内置花瓣形状。
+## [param style_index] 0 为单瓣，1 为五瓣花。
+func set_petal_style(style_index: int) -> void:
+	petal_style = style_index
+
+
+## 使用外部 shader 替换花瓣渲染；所有现存粒子会刷新。
+## [param shader] 需要保持与内置 shader 相同的 uniform 名称。
+func set_petal_shader(shader: Shader) -> void:
+	if shader == null or _material == null:
+		return
+	_material.shader = shader
+	_apply_material_parameters()
 
 
 ## 开启或关闭樱花，并渐变透明度。

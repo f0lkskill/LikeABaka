@@ -358,6 +358,28 @@ func set_sakura_density(density: float, duration: float = 1.0) -> void:
 		push_warning("GlobalManager: 找不到樱花粒子节点")
 
 
+## 切换内置花瓣形状，所有现存粒子会一起更新。
+## [param style_index] 0 为单瓣，1 为五瓣花。
+func set_sakura_petal_style(style_index: int) -> void:
+	if _sakura == null:
+		_sakura = get_node_or_null(sakura_path)
+	if _sakura != null and _sakura.has_method("set_petal_style"):
+		_sakura.call("set_petal_style", style_index)
+	else:
+		push_warning("GlobalManager: 找不到樱花粒子节点")
+
+
+## 使用外部花瓣 shader，所有现存粒子会一起更新。
+## [param shader] 需要保持与内置 shader 相同的 uniform 名称。
+func set_sakura_petal_shader(shader: Shader) -> void:
+	if _sakura == null:
+		_sakura = get_node_or_null(sakura_path)
+	if _sakura != null and _sakura.has_method("set_petal_shader"):
+		_sakura.call("set_petal_shader", shader)
+	else:
+		push_warning("GlobalManager: 找不到樱花粒子节点")
+
+
 ## 启动舞台旋转。
 ## [param switch_character] 是否在旋转开始时切换角色集合。
 ## [param texture_file_name] 可选的新角色贴图文件名。
