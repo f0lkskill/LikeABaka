@@ -11,7 +11,7 @@ extends GPUParticles3D
 ## 花瓣初始密度，0 到 1。
 @export_range(0.0, 1.0, 0.01) var initial_density: float = 0.55
 ## 花瓣生命周期。
-@export_range(2.0, 30.0, 0.5) var particle_lifetime: float = 11.0
+@export_range(2.0, 30.0, 0.5) var particle_lifetime: float = 18.0
 ## 发射环内半径，避免落到舞台中心。
 @export var ring_inner_radius: float = 33.0
 ## 发射环外半径，保持在外围遮罩内。
@@ -27,7 +27,7 @@ extends GPUParticles3D
 ## 花瓣浅色。
 @export var petal_light_color: Color = Color(1.0, 0.86, 0.91, 1.0)
 ## 花瓣单边尺寸。
-@export var petal_size: float = 0.9
+@export var petal_size: float = 1.35
 
 ## 粒子材质。
 var _material: ShaderMaterial
@@ -67,19 +67,21 @@ func _create_process_material() -> ParticleProcessMaterial:
 	material.emission_ring_inner_radius = ring_inner_radius
 	material.emission_ring_height = ring_height
 	material.direction = Vector3(0.0, -1.0, 0.0)
-	material.spread = 24.0
-	material.initial_velocity_min = 1.2
-	material.initial_velocity_max = 3.8
-	material.gravity = Vector3(0.0, -1.4, 0.0)
-	material.angular_velocity_min = -110.0
-	material.angular_velocity_max = 110.0
+	material.spread = 30.0
+	material.initial_velocity_min = 3.5
+	material.initial_velocity_max = 6.5
+	material.gravity = Vector3(0.0, -2.4, 0.0)
+	material.damping_min = 0.02
+	material.damping_max = 0.08
+	material.angular_velocity_min = -160.0
+	material.angular_velocity_max = 160.0
 	material.angle_min = -180.0
 	material.angle_max = 180.0
-	material.scale_min = 0.55
-	material.scale_max = 1.25
+	material.scale_min = 0.7
+	material.scale_max = 1.6
 	material.turbulence_enabled = true
-	material.turbulence_noise_strength = 0.7
-	material.turbulence_noise_scale = 2.0
+	material.turbulence_noise_strength = 1.1
+	material.turbulence_noise_scale = 1.4
 	return material
 
 
