@@ -663,7 +663,11 @@ func _enter_silhouette() -> void:
 			silhouette_transition_duration
 		)
 	if _atmosphere != null and _atmosphere.has_method("set_badapple_mode"):
-		_atmosphere.call("set_badapple_mode", true)
+		_atmosphere.call(
+			"set_badapple_mode",
+			true,
+			silhouette_transition_duration
+		)
 	_set_badapple_bloom(true, silhouette_transition_duration)
 
 
@@ -697,7 +701,11 @@ func _exit_silhouette() -> void:
 			silhouette_transition_duration
 		)
 	if _atmosphere != null and _atmosphere.has_method("set_badapple_mode"):
-		_atmosphere.call("set_badapple_mode", false)
+		_atmosphere.call(
+			"set_badapple_mode",
+			false,
+			silhouette_transition_duration
+		)
 	_set_badapple_bloom(false, silhouette_transition_duration)
 	if silhouette_transition_duration <= 0.0:
 		_finish_exit_silhouette()

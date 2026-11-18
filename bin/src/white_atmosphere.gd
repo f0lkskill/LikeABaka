@@ -42,6 +42,8 @@ var _enabled_fade: float = 0.0
 var _fade_tween: Tween
 ## 主题色渐变 Tween。
 var _theme_tween: Tween
+## 主题色到 BadApple 白色的渐变 Tween。
+var _tint_tween: Tween
 ## BGM 频谱分析器。
 var _analyzer: AudioEffectSpectrumAnalyzerInstance
 ## 当前 BGM 强度，范围 0 到 1。
@@ -142,9 +144,25 @@ func set_enabled(enabled: bool, duration: float = 1.0) -> void:
 
 ## 切换 BadApple 的白色氛围配色。
 ## [param active] true 时忽略主题色，使用纯白。
-func set_badapple_mode(active: bool) -> void:
+## [param duration] 主题色与白色之间的渐变时长。
+func set_badapple_mode(active: bool, duration: float = 0.0) -> void:
 	_badapple_mode = active
-	_refresh_tint()
+	if _tint_tween != null and _tint_tween.is_valid():
+		_tint_tween.kill()
+	var target := _get_target_tint_color()
+	if duration <= 0.0 or _material == null:
+		_set_tint_color_value(target)
+		return
+	var current := _material.get_shader_parameter("tint_color") as Color
+	if current == null:
+		current = target
+	_tint_tween = create_tween()
+	_tint_tween.tween_method(
+		_set_tint_color_value,
+		current,
+		target,
+		duration
+	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 ## 每帧读取当前 BGM 频谱并更新氛围强度。
@@ -196,10 +214,23 @@ void fragment() {
 func _refresh_tint() -> void:
 	if _material == null:
 		return
-	var color := Color.WHITE.lerp(_theme_color, theme_tint_strength)
+	if _tint_tween != null and _tint_tween.is_running():
+		return
+	_set_tint_color_value(_get_target_tint_color())
+
+
+## 计算当前主题色与 BadApple 模式下的目标颜色。
+func _get_target_tint_color() -> Color:
 	if _badapple_mode:
-		color = Color.WHITE
-	_material.set_shader_parameter("tint_color", color)
+		return Color.WHITE
+	return Color.WHITE.lerp(_theme_color, theme_tint_strength)
+
+
+## 写入 shader 的 tint_color。
+## [param color] 目标颜色。
+func _set_tint_color_value(color: Color) -> void:
+	if _material != null:
+		_material.set_shader_parameter("tint_color", color)
 
 
 ## 设置开关渐变值。
