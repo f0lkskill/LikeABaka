@@ -183,8 +183,8 @@ tracks/3/path = NodePath(".")
 tracks/3/interp = 1
 tracks/3/loop_wrap = true
 tracks/3/keys = {
-"times": PackedFloat32Array(0, 9.6, 11.833333, 14.5, 18.21, 20.19, 22.26, 24.22, 26.67, 31.3, 31.91, 33.966667, 34.62, 35.8, 37.3, 38.86, 43.36, 45.47, 47.15),
-"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"times": PackedFloat32Array(0, 9.6, 11.833333, 14.5, 18.21, 20.19, 22.26, 24.22, 26.67, 31.3, 31.91, 33.966667, 35.8, 37.3, 38.86, 43.36, 45.47, 47.15),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
 "values": [{
 "args": ["normal.png"],
 "method": &"set_character_texture"
@@ -217,9 +217,6 @@ tracks/3/keys = {
 "method": &"set_character_texture"
 }, {
 "args": ["4.png"],
-"method": &"set_character_texture"
-}, {
-"args": ["5.png"],
 "method": &"set_character_texture"
 }, {
 "args": ["5.png"],
@@ -289,10 +286,13 @@ tracks/5/path = NodePath(".")
 tracks/5/interp = 1
 tracks/5/loop_wrap = true
 tracks/5/keys = {
-"times": PackedFloat32Array(34),
-"transitions": PackedFloat32Array(1),
+"times": PackedFloat32Array(34, 51),
+"transitions": PackedFloat32Array(1, 1),
 "values": [{
 "args": [true, 1.0],
+"method": &"set_sakura_enabled"
+}, {
+"args": [false, 1.0],
 "method": &"set_sakura_enabled"
 }]
 }
@@ -329,8 +329,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 30, 8)
 script = ExtResource("9_fly")
 
 [node name="SakuraPetals" type="GPUParticles3D" parent="stage" unique_id=1256813407]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 60, 8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 120, 8)
 script = ExtResource("10_sakura")
+particle_lifetime = 30.0
+ring_height = 16.0
+petal_size = 1.8
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="stage" unique_id=382366739]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.001, 8)

@@ -7,17 +7,17 @@ extends GPUParticles3D
 
 @export_group("Particles")
 ## 最大粒子数量。
-@export_range(20, 2000, 10) var max_particles: int = 420
+@export_range(20, 2000, 10) var max_particles: int = 620
 ## 花瓣初始密度，0 到 1。
-@export_range(0.0, 1.0, 0.01) var initial_density: float = 0.55
+@export_range(0.0, 1.0, 0.01) var initial_density: float = 0.72
 ## 花瓣生命周期。
 @export_range(2.0, 30.0, 0.5) var particle_lifetime: float = 18.0
-## 发射环内半径，避免落到舞台中心。
-@export var ring_inner_radius: float = 33.0
-## 发射环外半径，保持在外围遮罩内。
-@export var ring_outer_radius: float = 47.0
-## 发射环垂直厚度。
-@export_range(0.0, 20.0, 0.1) var ring_height: float = 6.0
+## 发射区域横向半宽，覆盖整个背幕。
+@export var spawn_half_width: float = 58.0
+## 发射区域纵深半深。
+@export var spawn_half_depth: float = 48.0
+## 发射平面厚度。
+@export_range(0.0, 20.0, 0.1) var spawn_thickness: float = 0.5
 ## 每秒固定粒子模拟帧率。
 @export_range(10, 60, 1) var particle_fps: int = 30
 
@@ -48,8 +48,8 @@ func _ready() -> void:
 	fixed_fps = particle_fps
 	emitting = false
 	visibility_aabb = AABB(
-		Vector3(-80.0, -80.0, -80.0),
-		Vector3(160.0, 160.0, 160.0)
+		Vector3(-80.0, -160.0, -80.0),
+		Vector3(160.0, 320.0, 160.0)
 	)
 	process_material = _create_process_material()
 	draw_pass_1 = _create_petal_mesh()
@@ -61,16 +61,17 @@ func _ready() -> void:
 ## 创建粒子发射与运动参数。
 func _create_process_material() -> ParticleProcessMaterial:
 	var material := ParticleProcessMaterial.new()
-	material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_RING
-	material.emission_ring_axis = Vector3(0.0, 1.0, 0.0)
-	material.emission_ring_radius = ring_outer_radius
-	material.emission_ring_inner_radius = ring_inner_radius
-	material.emission_ring_height = ring_height
+	material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	material.emission_box_extents = Vector3(
+		spawn_half_width,
+		spawn_thickness,
+		spawn_half_depth
+	)
 	material.direction = Vector3(0.0, -1.0, 0.0)
-	material.spread = 30.0
-	material.initial_velocity_min = 3.5
-	material.initial_velocity_max = 6.5
-	material.gravity = Vector3(0.0, -2.4, 0.0)
+	material.spread = 14.0
+	material.initial_velocity_min = 8.0
+	material.initial_velocity_max = 14.0
+	material.gravity = Vector3(0.0, -5.0, 0.0)
 	material.damping_min = 0.02
 	material.damping_max = 0.08
 	material.angular_velocity_min = -160.0
