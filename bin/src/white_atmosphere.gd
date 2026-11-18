@@ -7,7 +7,7 @@ extends CanvasLayer
 
 @export var camera_path: NodePath = ^"stage/Node3D/Camera3D"
 ## 氛围强度系数，最终透明度会乘以它。
-@export_range(0.0, 2.0, 0.01) var intensity_coefficient: float = 0.45
+@export_range(0.0, 2.0, 0.01) var intensity_coefficient: float = 1.15
 ## 主题色混合到白色底色的比例。
 @export_range(0.0, 1.0, 0.01) var theme_tint_strength: float = 0.28
 ## 是否跟随 BGM 自动计算出的 FOV 强度。
@@ -17,13 +17,13 @@ extends CanvasLayer
 ## FOV 映射上限。
 @export var fov_max: float = 100.0
 ## FOV 变化对强度的影响比例。
-@export_range(0.0, 1.0, 0.01) var fov_influence: float = 0.6
+@export_range(0.0, 1.0, 0.01) var fov_influence: float = 0.85
 ## 渐变开始位置，0 为屏幕中心，1 为边缘。
-@export_range(0.0, 1.0, 0.01) var edge_start: float = 0.35
+@export_range(0.0, 1.0, 0.01) var edge_start: float = 0.18
 ## 渐变结束位置。
 @export_range(0.0, 1.5, 0.01) var edge_end: float = 1.0
 ## 渐变曲线幂次，越大越集中到边缘。
-@export_range(0.2, 5.0, 0.1) var gradient_power: float = 1.5
+@export_range(0.2, 5.0, 0.1) var gradient_power: float = 1.2
 
 ## 全屏色块。
 var _rect: ColorRect
@@ -121,7 +121,7 @@ func _process(delta: float) -> void:
 			)
 			_fov_factor = lerpf(1.0 - fov_influence, 1.0, fov_ratio)
 	var target := intensity_coefficient * _fov_factor * _enabled_fade
-	_opacity = lerpf(_opacity, target, clampf(delta * 8.0, 0.0, 1.0))
+	_opacity = lerpf(_opacity, target, clampf(delta * 12.0, 0.0, 1.0))
 	_apply_opacity()
 
 
